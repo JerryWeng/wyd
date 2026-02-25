@@ -72,6 +72,55 @@ export class DataProcessor {
     return combinedData;
   }
 
+  private static processDateRangeData(siteInfo: RawSiteInfo, daysBack: number): ProcessedSiteInfo {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = new Date(today);
+    cutoff.setDate(today.getDate() - (daysBack - 1));
+
+    let totalTimeData: Record<string, number> = {};
+    let totalSessionData: Record<string, number> = {};
+
+    Object.entries(siteInfo).forEach(([dateStr, dayData]) => {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      if (date >= cutoff) {
+        if (dayData.time) {
+          Object.entries(dayData.time).forEach(([domain, seconds]) => {
+            totalTimeData[domain] = (totalTimeData[domain] || 0) + seconds;
+          });
+        }
+        if (dayData.sessions) {
+          Object.entries(dayData.sessions).forEach(([domain, sessions]) => {
+            totalSessionData[domain] = (totalSessionData[domain] || 0) + sessions;
+          });
+        }
+      }
+    });
+
+    const combinedData: ProcessedSiteInfo = {};
+    Object.entries(totalTimeData).forEach(([domain, seconds]) => {
+      combinedData[domain] = { time: seconds, sessions: totalSessionData[domain] || 0 };
+    });
+    Object.entries(totalSessionData).forEach(([domain, sessions]) => {
+      if (!combinedData[domain]) combinedData[domain] = { time: 0, sessions };
+    });
+
+    return combinedData;
+  }
+
+  static processWeekData(siteInfo: RawSiteInfo): ProcessedSiteInfo {
+    return this.processDateRangeData(siteInfo, 7);
+  }
+
+  static processMonthData(siteInfo: RawSiteInfo): ProcessedSiteInfo {
+    return this.processDateRangeData(siteInfo, 30);
+  }
+
+  static processYearData(siteInfo: RawSiteInfo): ProcessedSiteInfo {
+    return this.processDateRangeData(siteInfo, 365);
+  }
+
   static sortData(
     combinedData: ProcessedSiteInfo,
     filterBy: string,

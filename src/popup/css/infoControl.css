@@ -50,7 +50,12 @@
   width: 18px;
   height: 18px;
   stroke: currentColor;
-  stroke-width: 2;
+}
+
+.pageControl svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
 }
 
 #paginationControls {

@@ -1,16 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { StorageService } from "../utils/storageService";
 import { DataProcessor } from "../utils/dataProcessor";
-import type { ProcessedSiteInfo } from "../types/data.types";
+import type { ProcessedSiteInfo, Category } from "../types/data.types";
 
 export const usePopupController = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allData, setAllData] = useState<ProcessedSiteInfo>({});
 
-  const [currentCategory, setCurrentCategory] = useState<"today" | "total">(
-    "today",
-  );
+  const [currentCategory, setCurrentCategory] = useState<Category>("today");
   const [filterBy, setFilterBy] = useState<"time" | "session">("time");
   const [sortOrder, setSortOrder] = useState<"ascending" | "descending">(
     "descending",
@@ -31,6 +29,12 @@ export const usePopupController = () => {
         let combinedData: ProcessedSiteInfo;
         if (currentCategory === "today") {
           combinedData = DataProcessor.processTodayData(siteInfo);
+        } else if (currentCategory === "1W") {
+          combinedData = DataProcessor.processWeekData(siteInfo);
+        } else if (currentCategory === "1M") {
+          combinedData = DataProcessor.processMonthData(siteInfo);
+        } else if (currentCategory === "1Y") {
+          combinedData = DataProcessor.processYearData(siteInfo);
         } else {
           combinedData = DataProcessor.processTotalData(siteInfo);
         }
@@ -50,7 +54,7 @@ export const usePopupController = () => {
     return DataProcessor.sortData(allData, filterBy, sortOrder);
   }, [allData, filterBy, sortOrder]); // re-calculates when these change
 
-  const handleCategorySwitch = (category: "today" | "total") => {
+  const handleCategorySwitch = (category: Category) => {
     setCurrentCategory(category);
   };
 

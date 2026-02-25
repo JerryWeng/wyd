@@ -1,3 +1,6 @@
+// category type
+export type Category = "today" | "1W" | "1M" | "1Y" | "total";
+
 // raw data types
 type DomainData = Record<string, number>; // domain name to either time(seconds) or sessions
 interface MultipleDomainStats {

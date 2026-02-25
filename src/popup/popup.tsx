@@ -54,30 +54,47 @@ const Popup = () => {
                 </div>
             </div>
 
-            {/* Category Buttons - Now driven by state */}
-            <div className="categories">
-                <button id="todayBtn" className={currentCategory === 'today' ? 'active' : ''} onClick={() => handleCategorySwitch('today')}>Today</button>
-                <button id="totalBtn" className={currentCategory === 'total' ? 'active' : ''} onClick={() => handleCategorySwitch('total')}>Total</button>
+            {/* Chart + Category selector - unified card */}
+            <div id="chart-section">
+                <span id="date-range-label">{TimeFormatter.getDateRangeLabel(currentCategory)}</span>
+                <PieChart data={DataProcessor.processDataForChart(allData)} />
+                <div className="categories">
+                    <button className={currentCategory === 'today' ? 'active' : ''} onClick={() => handleCategorySwitch('today')}>Today</button>
+                    <button className={currentCategory === '1W' ? 'active' : ''} onClick={() => handleCategorySwitch('1W')}>1W</button>
+                    <button className={currentCategory === '1M' ? 'active' : ''} onClick={() => handleCategorySwitch('1M')}>1M</button>
+                    <button className={currentCategory === '1Y' ? 'active' : ''} onClick={() => handleCategorySwitch('1Y')}>1Y</button>
+                    <button className={currentCategory === 'total' ? 'active' : ''} onClick={() => handleCategorySwitch('total')}>Total</button>
+                </div>
             </div>
-
-            {/* Chart - Now a dedicated component */}
-            <PieChart data={DataProcessor.processDataForChart(allData)} />
 
             {/* Controls */}
             <div id="controlContainer">
                 <div id="infoControls">
                     <div id="sortControls">
                         <div id="filterBtn" onClick={toggleFilter} title={`Filtering by ${filterBy}`}>
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M3 4.6C3 4.03995 3 3.75992 3.10899 3.54601C3.20487 3.35785 3.35785 3.20487 3.54601 3.10899C3.75992 3 4.03995 3 4.6 3H19.4C19.9601 3 20.2401 3 20.454 3.10899C20.6422 3.20487 20.7951 3.35785 20.891 3.54601C21 3.75992 21 4.03995 21 4.6V6.33726C21 6.58185 21 6.70414 20.9724 6.81923C20.9479 6.92127 20.9075 7.01881 20.8526 7.10828C20.7908 7.2092 20.7043 7.29568 20.5314 7.46863L14.4686 13.5314C14.2957 13.7043 14.2092 13.7908 14.1474 13.8917C14.0925 13.9812 14.0521 14.0787 14.0276 14.1808C14 14.2959 14 14.4182 14 14.6627V17L10 21V14.6627C10 14.4182 10 14.2959 9.97237 14.1808C9.94787 14.0787 9.90747 13.9812 9.85264 13.8917C9.7908 13.7908 9.70432 13.7043 9.53137 13.5314L3.46863 7.46863C3.29568 7.29568 3.2092 7.2092 3.14736 7.10828C3.09253 7.01881 3.05213 6.92127 3.02763 6.81923C3 6.70414 3 6.58185 3 6.33726V4.6Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 4.6C3 4.04 3 3.76 3.109 3.546C3.205 3.358 3.358 3.205 3.546 3.109C3.76 3 4.04 3 4.6 3H19.4C19.96 3 20.24 3 20.454 3.109C20.642 3.205 20.795 3.358 20.891 3.546C21 3.76 21 4.04 21 4.6V6.337C21 6.582 21 6.704 20.972 6.819C20.948 6.921 20.908 7.019 20.853 7.108C20.791 7.209 20.704 7.296 20.531 7.469L14.469 13.531C14.296 13.704 14.209 13.791 14.147 13.892C14.093 13.981 14.052 14.079 14.028 14.181C14 14.296 14 14.418 14 14.663V17L10 21V14.663C10 14.418 10 14.296 9.972 14.181C9.948 14.079 9.907 13.981 9.853 13.892C9.791 13.791 9.704 13.704 9.531 13.531L3.469 7.469C3.296 7.296 3.209 7.209 3.147 7.108C3.093 7.019 3.052 6.921 3.028 6.819C3 6.704 3 6.582 3 6.337V4.6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
                         </div>
                         <div id="sortBtn" onClick={toggleSortOrder} title={`Sorting ${sortOrder}`}>
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7.55228 5 8 5.44772 8 6V15.5858L10.2929 13.2929C10.6834 12.9024 11.3166 12.9024 11.7071 13.2929C12.0976 13.6834 12.0976 14.3166 11.7071 14.7071L7.70711 18.7071C7.31658 19.0976 6.68342 19.0976 6.29289 18.7071L2.29289 14.7071C1.90237 14.3166 1.90237 13.6834 2.29289 13.2929C2.68342 12.9024 3.31658 12.9024 3.70711 13.2929L6 15.5858V6C6 5.44772 6.44772 5 7 5ZM16.2929 5.29289C16.6834 4.90237 17.3166 4.90237 17.7071 5.29289L21.7071 9.29289C22.0976 9.68342 22.0976 10.3166 21.7071 10.7071C21.3166 11.0976 20.6834 11.0976 20.2929 10.7071L18 8.41421V18C18 18.5523 17.5523 19 17 19C16.4477 19 16 18.5523 16 18V8.41421L13.7071 10.7071C13.3166 11.0976 12.6834 11.0976 12.2929 10.7071C11.9024 10.3166 11.9024 9.68342 12.2929 9.29289L16.2929 5.29289Z" fill="#0F1729"></path> </g></svg>
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7 5V19M7 19L4 16M7 19L10 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M17 19V5M17 5L14 8M17 5L20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
                         </div>
                     </div>
                     <div id="paginationControls">
-                        <button id="prevPage" className="pageControl" onClick={goToPreviousPage} disabled={isFirstPage}>&lt;</button>
+                        <button id="prevPage" className="pageControl" onClick={goToPreviousPage} disabled={isFirstPage}>
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </button>
                         <div id="pageNumber">{currentPage} of {totalPages}</div>
-                        <button id="nextPage" className="pageControl" onClick={goToNextPage} disabled={isLastPage}>&gt;</button>
+                        <button id="nextPage" className="pageControl" onClick={goToNextPage} disabled={isLastPage}>
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
