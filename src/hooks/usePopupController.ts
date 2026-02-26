@@ -8,6 +8,7 @@ export const usePopupController = () => {
   const [error, setError] = useState<string | null>(null);
   const [allData, setAllData] = useState<ProcessedSiteInfo>({});
   const [showSettings, setShowSettings] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const [currentCategory, setCurrentCategory] = useState<Category>("today");
   const [filterBy, setFilterBy] = useState<"time" | "session">("time");
@@ -56,7 +57,7 @@ export const usePopupController = () => {
     };
 
     loadAndDisplayData();
-  }, [currentCategory]);
+  }, [currentCategory, refreshTick]);
 
   const sortedSites = useMemo(() => {
     return DataProcessor.sortData(allData, filterBy, sortOrder);
@@ -77,7 +78,15 @@ export const usePopupController = () => {
   };
 
   const openSettings = () => setShowSettings(true);
-  const closeSettings = () => setShowSettings(false);
+  const closeSettings = async () => {
+    const s = await StorageService.getSettings();
+    if (s.defaultView !== currentCategory) {
+      setCurrentCategory(s.defaultView); // triggers the data effect with the new category
+    } else {
+      setRefreshTick((prev) => prev + 1); // forces re-fetch without changing category
+    }
+    setShowSettings(false);
+  };
 
   return {
     isLoading,
