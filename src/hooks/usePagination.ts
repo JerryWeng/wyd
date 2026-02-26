@@ -27,12 +27,17 @@ export const usePagination = <T>(allItems: T[], itemsPerPage = 4) => {
     setCurrentPage((prev) => Math.max(prev - 1, 1)); // so it doesn't go under 1
   };
 
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
   return {
     currentPage,
     totalPages,
     currentPageItems,
     goToNextPage,
     goToPreviousPage,
+    goToPage,
     isFirstPage: currentPage === 1,
     isLastPage: currentPage === totalPages,
   };
