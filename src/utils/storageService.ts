@@ -1,4 +1,4 @@
-import type { AppSettings, RawSiteInfo } from "../types/data.types";
+import type { AppSettings, Category, RawSiteInfo } from "../types/data.types";
 import { DEFAULT_SETTINGS } from "../types/data.types";
 
 export class StorageService {
@@ -78,6 +78,43 @@ export class StorageService {
     const now = new Date();
     const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     delete siteInfo[dateKey];
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ siteInfo }, () => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  static async clearDataRange(
+    range: Exclude<Category, "total">
+  ): Promise<void> {
+    const daysBackMap: Record<string, number> = {
+      today: 1,
+      "1W": 7,
+      "1M": 30,
+      "1Y": 365,
+    };
+
+    const daysBack = daysBackMap[range];
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const cutoff = new Date(now);
+    cutoff.setDate(now.getDate() - (daysBack - 1));
+
+    const siteInfo = await this.getSiteInfo();
+
+    for (const dateStr of Object.keys(siteInfo)) {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      if (date >= cutoff) {
+        delete siteInfo[dateStr];
+      }
+    }
+
     return new Promise((resolve, reject) => {
       chrome.storage.local.set({ siteInfo }, () => {
         if (chrome.runtime.lastError) {

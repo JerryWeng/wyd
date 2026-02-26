@@ -16,12 +16,29 @@ const VIEW_OPTIONS: { label: string; value: Category }[] = [
   { label: "Total", value: "total" },
 ];
 
+const CLEAR_OPTIONS: { label: string; value: Exclude<Category, "total"> }[] = [
+  { label: "Today", value: "today" },
+  { label: "Last 7 Days", value: "1W" },
+  { label: "Last 30 Days", value: "1M" },
+  { label: "Last Year", value: "1Y" },
+];
+
+const CLEAR_LABELS: Record<Exclude<Category, "total">, string> = {
+  today: "today's data",
+  "1W": "data from the last 7 days",
+  "1M": "data from the last 30 days",
+  "1Y": "data from the last year",
+};
+
 const Settings = ({ onClose }: SettingsProps) => {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [domainInput, setDomainInput] = useState("");
-  const [confirmClear, setConfirmClear] = useState<"today" | "all" | null>(
-    null
-  );
+  const [confirmClear, setConfirmClear] = useState<
+    Exclude<Category, "total"> | "all" | null
+  >(null);
+  const [clearTimeframe, setClearTimeframe] = useState<
+    Exclude<Category, "total">
+  >("today");
   const [exportLoading, setExportLoading] = useState(false);
   const [clearFeedback, setClearFeedback] = useState<string | null>(null);
 
@@ -61,13 +78,15 @@ const Settings = ({ onClose }: SettingsProps) => {
     );
   };
 
-  const handleClear = async (type: "today" | "all") => {
-    if (type === "today") {
-      await StorageService.clearTodayData();
-      setClearFeedback("Today's data cleared.");
-    } else {
+  const handleClear = async (
+    type: Exclude<Category, "total"> | "all"
+  ) => {
+    if (type === "all") {
       await StorageService.clearAllData();
       setClearFeedback("All data cleared.");
+    } else {
+      await StorageService.clearDataRange(type);
+      setClearFeedback(`Cleared ${CLEAR_LABELS[type]}.`);
     }
     setConfirmClear(null);
     setTimeout(() => setClearFeedback(null), 3000);
@@ -175,12 +194,14 @@ const Settings = ({ onClose }: SettingsProps) => {
               <span className="clear-feedback">{clearFeedback}</span>
             )}
             <div className="clear-buttons">
-              {confirmClear === "today" ? (
+              {confirmClear !== null && confirmClear !== "all" ? (
                 <div className="confirm-row">
-                  <span className="confirm-text">Clear today's data?</span>
+                  <span className="confirm-text">
+                    Clear {CLEAR_LABELS[confirmClear]}?
+                  </span>
                   <button
                     className="btn-danger-sm"
-                    onClick={() => handleClear("today")}
+                    onClick={() => handleClear(confirmClear)}
                   >
                     Confirm
                   </button>
@@ -192,13 +213,31 @@ const Settings = ({ onClose }: SettingsProps) => {
                   </button>
                 </div>
               ) : (
-                <button
-                  className="btn-outline-sm"
-                  onClick={() => setConfirmClear("today")}
-                  disabled={confirmClear === "all"}
-                >
-                  Clear Today
-                </button>
+                <div className="clear-range-row">
+                  <select
+                    className="clear-select"
+                    value={clearTimeframe}
+                    onChange={(e) =>
+                      setClearTimeframe(
+                        e.target.value as Exclude<Category, "total">
+                      )
+                    }
+                    disabled={confirmClear === "all"}
+                  >
+                    {CLEAR_OPTIONS.map(({ label, value }) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="btn-outline-sm"
+                    onClick={() => setConfirmClear(clearTimeframe)}
+                    disabled={confirmClear === "all"}
+                  >
+                    Clear Selected
+                  </button>
+                </div>
               )}
 
               {confirmClear === "all" ? (
@@ -221,7 +260,7 @@ const Settings = ({ onClose }: SettingsProps) => {
                 <button
                   className="btn-outline-sm btn-outline-danger"
                   onClick={() => setConfirmClear("all")}
-                  disabled={confirmClear === "today"}
+                  disabled={confirmClear !== null}
                 >
                   Clear All
                 </button>

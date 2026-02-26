@@ -267,9 +267,41 @@
 /* Clear data */
 .clear-buttons {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.125rem;
+}
+
+.clear-range-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.clear-select {
+  flex: 1;
+  height: 1.875rem;
+  padding: 0 0.625rem;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: white;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.clear-select:hover:not(:disabled) {
+  border-color: var(--accent-light);
+  background: var(--btn-color);
+}
+
+.clear-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .clear-feedback {
