@@ -12,6 +12,7 @@ import { useState, useRef } from 'react';
 import { usePopupController } from '../hooks/usePopupController';
 import { usePagination } from '../hooks/usePagination';
 import PieChart from '../components/PieChart';
+import Settings from '../components/Settings';
 import { TimeFormatter } from '../utils/timeFormatter';
 import { DataProcessor } from '../utils/dataProcessor';
 
@@ -23,10 +24,12 @@ const Popup = () => {
         currentCategory,
         filterBy,
         sortOrder,
+        showSettings,
         handleCategorySwitch,
         toggleSortOrder,
         toggleFilter,
         openSettings,
+        closeSettings,
         allData
     } = usePopupController();
 
@@ -59,6 +62,9 @@ const Popup = () => {
 
     return (
         <div className="container">
+            {showSettings ? (
+                <Settings onClose={closeSettings} />
+            ) : (<>
             {/* Header */}
             <div className="subcontainer">
                 <div className="title">
@@ -167,6 +173,7 @@ const Popup = () => {
                     </>
                 )}
             </div>
+            </>)}
         </div>
     );
 };

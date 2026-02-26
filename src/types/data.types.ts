@@ -1,6 +1,19 @@
 // category type
 export type Category = "today" | "1W" | "1M" | "1Y" | "total";
 
+// settings types
+export interface AppSettings {
+  idleTrackingEnabled: boolean;
+  ignoredDomains: string[];
+  defaultView: Category;
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  idleTrackingEnabled: true,
+  ignoredDomains: [],
+  defaultView: "today",
+};
+
 // raw data types
 type DomainData = Record<string, number>; // domain name to either time(seconds) or sessions
 interface MultipleDomainStats {

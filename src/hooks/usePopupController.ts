@@ -7,12 +7,20 @@ export const usePopupController = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allData, setAllData] = useState<ProcessedSiteInfo>({});
+  const [showSettings, setShowSettings] = useState(false);
 
   const [currentCategory, setCurrentCategory] = useState<Category>("today");
   const [filterBy, setFilterBy] = useState<"time" | "session">("time");
   const [sortOrder, setSortOrder] = useState<"ascending" | "descending">(
     "descending",
   );
+
+  // Load default view from settings on mount
+  useEffect(() => {
+    StorageService.getSettings().then((s) => {
+      setCurrentCategory(s.defaultView);
+    });
+  }, []);
 
   useEffect(() => {
     const loadAndDisplayData = async () => {
@@ -52,7 +60,7 @@ export const usePopupController = () => {
 
   const sortedSites = useMemo(() => {
     return DataProcessor.sortData(allData, filterBy, sortOrder);
-  }, [allData, filterBy, sortOrder]); // re-calculates when these change
+  }, [allData, filterBy, sortOrder]);
 
   const handleCategorySwitch = (category: Category) => {
     setCurrentCategory(category);
@@ -68,11 +76,8 @@ export const usePopupController = () => {
     setFilterBy((prev) => (prev === "time" ? "session" : "time"));
   };
 
-  const openSettings = () => {
-    // In a real extension, you'd use chrome.runtime.openOptionsPage()
-    // but for now this is fine.
-    window.location.href = "../settings/settings.html";
-  };
+  const openSettings = () => setShowSettings(true);
+  const closeSettings = () => setShowSettings(false);
 
   return {
     isLoading,
@@ -81,10 +86,12 @@ export const usePopupController = () => {
     currentCategory,
     filterBy,
     sortOrder,
+    showSettings,
     handleCategorySwitch,
     toggleSortOrder,
     toggleFilter,
     openSettings,
+    closeSettings,
     allData,
   };
 };

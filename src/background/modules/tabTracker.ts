@@ -4,6 +4,8 @@ import BadgeManager from "./badgeManager.js";
 export class TabTracker {
   public storageManager: StorageManager;
   public badgeManager: BadgeManager;
+  private ignoredDomains: string[] = [];
+  private settingsListenerAdded: boolean = false;
   public currentTab: {
     id: number | undefined;
     intervalId: NodeJS.Timeout | null;
@@ -83,6 +85,15 @@ export class TabTracker {
 
     this.currentTab.id = tab.id;
     this.currentTab.domain = this.getDomain(tab.url);
+
+    // Treat ignored domains the same as untrackable ones
+    if (
+      this.currentTab.domain &&
+      this.ignoredDomains.includes(this.currentTab.domain)
+    ) {
+      this.currentTab.domain = null;
+    }
+
     this.currentTab.startTime = Date.now();
     this.currentTab.accumulatedTime = 0;
     this.currentTab.currentDate = this.storageManager.getLocalDateString();
@@ -224,7 +235,24 @@ export class TabTracker {
     }
   }
 
+  private loadSettings() {
+    chrome.storage.sync.get(["settings"], (result) => {
+      this.ignoredDomains = result.settings?.ignoredDomains ?? [];
+    });
+
+    if (!this.settingsListenerAdded) {
+      this.settingsListenerAdded = true;
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === "sync" && changes.settings?.newValue) {
+          this.ignoredDomains =
+            changes.settings.newValue.ignoredDomains ?? this.ignoredDomains;
+        }
+      });
+    }
+  }
+
   async initialize() {
+    this.loadSettings();
     this.currentTab.currentDate = this.storageManager.getLocalDateString();
 
     try {
