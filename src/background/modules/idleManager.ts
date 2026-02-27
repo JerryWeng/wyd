@@ -1,25 +1,27 @@
 import TabTracker from "./tabTracker";
 
-const IDLE_THRESHOLD_SECONDS = 300; // 5 minutes
-
 export class IdleManager {
   private tabTracker: TabTracker;
   private isLocked: boolean;
   private isIdle: boolean;
   private idleTrackingEnabled: boolean;
+  private idleTimeoutMinutes: number;
 
   constructor(tabTracker: TabTracker) {
     this.tabTracker = tabTracker;
     this.isLocked = false;
     this.isIdle = false;
     this.idleTrackingEnabled = true;
+    this.idleTimeoutMinutes = 5;
     this.initialize();
   }
 
   initialize() {
-    // Load initial setting
+    // Load initial settings
     chrome.storage.sync.get(["settings"], (result) => {
       this.idleTrackingEnabled = result.settings?.idleTrackingEnabled ?? true;
+      this.idleTimeoutMinutes = result.settings?.idleTimeoutMinutes ?? 5;
+      chrome.idle.setDetectionInterval(this.idleTimeoutMinutes * 60);
     });
 
     // React to live setting changes
@@ -28,11 +30,14 @@ export class IdleManager {
         this.idleTrackingEnabled =
           changes.settings.newValue.idleTrackingEnabled ??
           this.idleTrackingEnabled;
+
+        const newMinutes = changes.settings.newValue.idleTimeoutMinutes;
+        if (newMinutes !== undefined && newMinutes !== this.idleTimeoutMinutes) {
+          this.idleTimeoutMinutes = newMinutes;
+          chrome.idle.setDetectionInterval(this.idleTimeoutMinutes * 60);
+        }
       }
     });
-
-    // Set idle detection threshold
-    chrome.idle.setDetectionInterval(IDLE_THRESHOLD_SECONDS);
 
     // Listen for state changes
     chrome.idle.onStateChanged.addListener(async (newState) => {
@@ -46,7 +51,7 @@ export class IdleManager {
     });
 
     // Check initial state
-    chrome.idle.queryState(IDLE_THRESHOLD_SECONDS, async (state) => {
+    chrome.idle.queryState(this.idleTimeoutMinutes * 60, async (state) => {
       if (state === "locked") {
         await this.handleLocked();
       } else if (state === "idle") {

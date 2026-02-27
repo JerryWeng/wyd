@@ -8,6 +8,8 @@ interface SettingsProps {
   onClose: () => void;
 }
 
+type ActiveView = "main" | "ignored_domains";
+
 const VIEW_OPTIONS: { label: string; value: Category }[] = [
   { label: "Today", value: "today" },
   { label: "1W", value: "1W" },
@@ -30,9 +32,18 @@ const CLEAR_LABELS: Record<Exclude<Category, "total">, string> = {
   "1Y": "data from the last year",
 };
 
+const DEFAULT_EXCLUDED = [
+  "chrome:// pages (browser internal)",
+  "about:// pages (browser internal)",
+  "file:// pages (local files)",
+  "chrome-extension:// pages (extensions)",
+];
+
 const Settings = ({ onClose }: SettingsProps) => {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [activeView, setActiveView] = useState<ActiveView>("main");
   const [domainInput, setDomainInput] = useState("");
+  const [showIdleTooltip, setShowIdleTooltip] = useState(false);
   const [confirmClear, setConfirmClear] = useState<
     Exclude<Category, "total"> | "all" | null
   >(null);
@@ -58,7 +69,6 @@ const Settings = ({ onClose }: SettingsProps) => {
   const addDomain = async () => {
     const raw = domainInput.trim().toLowerCase();
     if (!raw) return;
-    // Strip protocol and path, keep only the hostname
     const domain = raw.replace(/^https?:\/\//, "").split("/")[0];
     if (!domain || settings.ignoredDomains.includes(domain)) {
       setDomainInput("");
@@ -78,9 +88,7 @@ const Settings = ({ onClose }: SettingsProps) => {
     );
   };
 
-  const handleClear = async (
-    type: Exclude<Category, "total"> | "all"
-  ) => {
+  const handleClear = async (type: Exclude<Category, "total"> | "all") => {
     if (type === "all") {
       await StorageService.clearAllData();
       setClearFeedback("All data cleared.");
@@ -102,16 +110,95 @@ const Settings = ({ onClose }: SettingsProps) => {
     }
   };
 
+  // ── Ignored Domains Subview ──────────────────────────────────────────────
+  if (activeView === "ignored_domains") {
+    return (
+      <div className="settings-container">
+        <div className="settings-header">
+          <button
+            className="settings-back-btn"
+            onClick={() => setActiveView("main")}
+          >
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M15 18L9 12L15 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <span className="settings-title">Ignored Domains</span>
+        </div>
+
+        <div className="settings-content">
+          {/* Always-excluded (built-in) */}
+          <div className="settings-section">
+            <div className="settings-section-title">Always Excluded (Built-in)</div>
+            <div className="settings-block">
+              <span className="settings-row-desc">
+                These are filtered automatically and cannot be changed.
+              </span>
+              <div className="default-domains-section">
+                {DEFAULT_EXCLUDED.map((item) => (
+                  <span key={item} className="default-domain-item">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* User-added domains */}
+          <div className="settings-section">
+            <div className="settings-section-title">Custom Ignored Domains</div>
+            <div className="settings-block">
+              <div className="domain-input-row">
+                <input
+                  className="domain-input"
+                  type="text"
+                  placeholder="e.g. github.com, localhost"
+                  value={domainInput}
+                  onChange={(e) => setDomainInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") addDomain();
+                  }}
+                />
+                <button className="domain-add-btn" onClick={addDomain}>
+                  Add
+                </button>
+              </div>
+              {settings.ignoredDomains.length === 0 ? (
+                <span className="settings-row-desc">No custom domains added yet.</span>
+              ) : (
+                <ul className="domain-list">
+                  {settings.ignoredDomains.map((d) => (
+                    <li key={d} className="domain-item">
+                      <span className="domain-name">{d}</span>
+                      <button
+                        className="domain-remove-btn"
+                        onClick={() => removeDomain(d)}
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main Settings View ───────────────────────────────────────────────────
   return (
     <div className="settings-container">
-      {/* Header */}
       <div className="settings-header">
         <button className="settings-back-btn" onClick={onClose}>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M15 18L9 12L15 6"
               stroke="currentColor"
@@ -130,61 +217,77 @@ const Settings = ({ onClose }: SettingsProps) => {
           <div className="settings-section-title">Tracking & Privacy</div>
 
           {/* Idle Time Tracking */}
-          <div className="settings-row">
-            <div className="settings-row-info">
-              <span className="settings-row-label">Idle Time Tracking</span>
-              <span className="settings-row-desc">
-                Pause tracking after 5 min of inactivity
-              </span>
+          <div className="settings-block">
+            <div className="idle-header-row">
+              <div className="idle-label-group">
+                <span className="settings-row-label">Idle Time Tracking</span>
+                <button
+                  className="info-icon"
+                  onClick={() => setShowIdleTooltip((prev) => !prev)}
+                  aria-label="About idle tracking"
+                >
+                  ?
+                </button>
+              </div>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.idleTrackingEnabled}
+                  onChange={(e) =>
+                    updateSetting("idleTrackingEnabled", e.target.checked)
+                  }
+                />
+                <span className="toggle-slider" />
+              </label>
             </div>
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={settings.idleTrackingEnabled}
-                onChange={(e) =>
-                  updateSetting("idleTrackingEnabled", e.target.checked)
-                }
-              />
-              <span className="toggle-slider" />
-            </label>
+
+            {showIdleTooltip && (
+              <div className="idle-tooltip">
+                If no mouse movement or keystrokes occur for the set duration,
+                tracking pauses automatically until you return.
+              </div>
+            )}
+
+            {settings.idleTrackingEnabled && (
+              <div className="idle-slider-row">
+                <input
+                  type="range"
+                  className="idle-slider"
+                  min={1}
+                  max={10}
+                  step={1}
+                  value={settings.idleTimeoutMinutes}
+                  onChange={(e) =>
+                    updateSetting("idleTimeoutMinutes", Number(e.target.value))
+                  }
+                />
+                <span className="idle-slider-value">
+                  {settings.idleTimeoutMinutes}{" "}
+                  {settings.idleTimeoutMinutes === 1 ? "minute" : "minutes"}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Ignored Domains */}
+          {/* Ignored Domains — summary on main view */}
           <div className="settings-block">
             <span className="settings-row-label">Ignored Domains</span>
             <span className="settings-row-desc">
-              Time tracking is disabled on these sites
+              Time tracking is disabled on custom sites
             </span>
-            <div className="domain-input-row">
-              <input
-                className="domain-input"
-                type="text"
-                placeholder="e.g. localhost, github.com"
-                value={domainInput}
-                onChange={(e) => setDomainInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") addDomain();
-                }}
-              />
-              <button className="domain-add-btn" onClick={addDomain}>
-                Add
+            <div className="domains-summary-row">
+              <span className="domains-summary-text">
+                {settings.ignoredDomains.length === 0
+                  ? "No custom domains"
+                  : `${settings.ignoredDomains.length} custom domain${settings.ignoredDomains.length === 1 ? "" : "s"} ignored`}
+              </span>
+              <button
+                className="domains-manage-btn"
+                onClick={() => setActiveView("ignored_domains")}
+              >
+                Manage →
               </button>
             </div>
-            {settings.ignoredDomains.length > 0 && (
-              <ul className="domain-list">
-                {settings.ignoredDomains.map((d) => (
-                  <li key={d} className="domain-item">
-                    <span className="domain-name">{d}</span>
-                    <button
-                      className="domain-remove-btn"
-                      onClick={() => removeDomain(d)}
-                    >
-                      ✕
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
           {/* Clear Data */}

@@ -4,12 +4,14 @@ export type Category = "today" | "1W" | "1M" | "1Y" | "total";
 // settings types
 export interface AppSettings {
   idleTrackingEnabled: boolean;
+  idleTimeoutMinutes: number;
   ignoredDomains: string[];
   defaultView: Category;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   idleTrackingEnabled: true,
+  idleTimeoutMinutes: 5,
   ignoredDomains: [],
   defaultView: "today",
 };
