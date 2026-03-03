@@ -13,6 +13,7 @@ export class TabTracker {
     currentDate: string | undefined;
     startTime: number | null;
     accumulatedTime: number;
+    lastTickTime: number | null;
   };
 
   constructor(storageManager: StorageManager, badgeManager: BadgeManager) {
@@ -26,7 +27,28 @@ export class TabTracker {
       currentDate: undefined,
       startTime: null,
       accumulatedTime: 0,
+      lastTickTime: null,
     };
+  }
+
+  private readonly SLEEP_THRESHOLD_MS = 60_000;
+
+  private adjustForSleep(): void {
+    if (!this.currentTab.lastTickTime || !this.currentTab.startTime) return;
+    const now = Date.now();
+    const gap = now - this.currentTab.lastTickTime;
+    if (gap > this.SLEEP_THRESHOLD_MS) {
+      const validElapsed = Math.floor(
+        (this.currentTab.lastTickTime - this.currentTab.startTime) / 1000
+      );
+      const credited = Math.max(0, validElapsed);
+      this.currentTab.accumulatedTime += credited;
+      this.currentTab.startTime = now;
+      this.currentTab.lastTickTime = now;
+      console.log(
+        `[sleep] gap=${Math.round(gap / 1000)}s > 60s threshold — credited ${credited}s, discarded ${Math.round(gap / 1000) - credited}s`
+      );
+    }
   }
 
   getDomain(url: string | undefined) {
@@ -79,6 +101,7 @@ export class TabTracker {
     }
 
     if (this.currentTab.domain && this.currentTab.startTime) {
+      this.adjustForSleep();
       const elapsedTime = this.getElapsedTime();
       this.currentTab.accumulatedTime += elapsedTime;
     }
@@ -95,6 +118,7 @@ export class TabTracker {
     }
 
     this.currentTab.startTime = Date.now();
+    this.currentTab.lastTickTime = Date.now();
     this.currentTab.accumulatedTime = 0;
     this.currentTab.currentDate = this.storageManager.getLocalDateString();
 
@@ -106,25 +130,33 @@ export class TabTracker {
       );
 
       this.currentTab.intervalId = setInterval(async () => {
+        this.adjustForSleep();
+        this.currentTab.lastTickTime = Date.now();
         const today = this.storageManager.getLocalDateString();
 
         if (today !== this.currentTab.currentDate) {
+          const prevDate = this.currentTab.currentDate;
+          const totalTime = this.getCurrentSessionTime();
+
+          // Reset synchronously before any await so concurrent callbacks
+          // see updated state and don't re-enter this block with stale totals
+          this.currentTab.currentDate = today;
+          this.currentTab.startTime = Date.now();
+          this.currentTab.accumulatedTime = 0;
+
           console.log(
-            `Date changed from ${this.currentTab.currentDate} to ${today}`
+            `[interval] date rollover ${prevDate}→${today}: saving ${totalTime}s for ${this.currentTab.domain}, state reset`
           );
 
-          const totalTime = this.getCurrentSessionTime();
           if (totalTime > 0) {
             await this.storageManager.updateTimeOnly(
               this.currentTab.domain,
               totalTime,
-              this.currentTab.currentDate
+              prevDate
             );
           }
 
-          this.currentTab.currentDate = today;
-          this.currentTab.startTime = Date.now();
-          this.currentTab.accumulatedTime = 0;
+          console.log(`[interval] date rollover save complete`);
 
           await this.badgeManager.updateBadge(this.currentTab.domain, () =>
             this.getTotalDomainTime()
@@ -132,7 +164,7 @@ export class TabTracker {
         }
       }, 30000);
 
-      console.log(`Now tracking tab: ${tab.id} (${this.currentTab.domain})`);
+      console.log(`[tracking] interval started for ${this.currentTab.domain} (tab ${tab.id})`);
     } else {
       this.badgeManager.clearBadge();
       console.log(`Not tracking tab: ${tab.id} (invalid domain)`);
@@ -143,6 +175,7 @@ export class TabTracker {
     if (!this.currentTab.domain) return;
 
     this.currentTab.startTime = Date.now();
+    this.currentTab.lastTickTime = Date.now();
 
     await this.badgeManager.resumeBadgeUpdates(
       this.currentTab.domain,
@@ -151,25 +184,33 @@ export class TabTracker {
     );
 
     this.currentTab.intervalId = setInterval(async () => {
+      this.adjustForSleep();
+      this.currentTab.lastTickTime = Date.now();
       const today = this.storageManager.getLocalDateString();
 
       if (today !== this.currentTab.currentDate) {
+        const prevDate = this.currentTab.currentDate;
+        const totalTime = this.getCurrentSessionTime();
+
+        // Reset synchronously before any await so concurrent callbacks
+        // see updated state and don't re-enter this block with stale totals
+        this.currentTab.currentDate = today;
+        this.currentTab.startTime = Date.now();
+        this.currentTab.accumulatedTime = 0;
+
         console.log(
-          `Date changed from ${this.currentTab.currentDate} to ${today}`
+          `[interval] date rollover ${prevDate}→${today}: saving ${totalTime}s for ${this.currentTab.domain}, state reset`
         );
 
-        const totalTime = this.getCurrentSessionTime();
         if (totalTime > 0) {
           await this.storageManager.updateTimeOnly(
             this.currentTab.domain,
             totalTime,
-            this.currentTab.currentDate
+            prevDate
           );
         }
 
-        this.currentTab.currentDate = today;
-        this.currentTab.startTime = Date.now();
-        this.currentTab.accumulatedTime = 0;
+        console.log(`[interval] date rollover save complete`);
 
         await this.badgeManager.updateBadge(this.currentTab.domain, () =>
           this.getTotalDomainTime()
@@ -177,7 +218,7 @@ export class TabTracker {
       }
     }, 30000);
 
-    console.log(`Resumed tracking for: ${this.currentTab.domain}`);
+    console.log(`[tracking] interval started for ${this.currentTab.domain} (resumed)`);
   }
 
   async pauseTracking() {
@@ -198,18 +239,21 @@ export class TabTracker {
   }
 
   async saveInfo() {
+    this.adjustForSleep();
     if (this.currentTab.domain && this.currentTab.startTime) {
       const totalTime = this.getCurrentSessionTime();
       if (totalTime > 0) {
-        await this.storageManager.updateInfo(
-          this.currentTab.domain,
-          totalTime,
-          this.currentTab.currentDate
-        );
+        const domain = this.currentTab.domain;
+        const date = this.currentTab.currentDate;
+
+        // Reset before await so a concurrent interval callback racing us
+        // sees totalTime ≈ 0 and skips its own save
         this.currentTab.accumulatedTime = 0;
         this.currentTab.startTime = Date.now();
 
-        await this.badgeManager.updateBadge(this.currentTab.domain, () =>
+        console.log(`[saveInfo] ${domain} ${totalTime}s (${date}), state reset`);
+        await this.storageManager.updateInfo(domain, totalTime, date);
+        await this.badgeManager.updateBadge(domain, () =>
           this.getTotalDomainTime()
         );
       }
@@ -217,18 +261,21 @@ export class TabTracker {
   }
 
   async saveTime() {
+    this.adjustForSleep();
     if (this.currentTab.domain && this.currentTab.startTime) {
       const totalTime = this.getCurrentSessionTime();
       if (totalTime > 0) {
-        await this.storageManager.updateTimeOnly(
-          this.currentTab.domain,
-          totalTime,
-          this.currentTab.currentDate
-        );
+        const domain = this.currentTab.domain;
+        const date = this.currentTab.currentDate;
+
+        // Reset before await so a concurrent interval callback racing us
+        // sees totalTime ≈ 0 and skips its own save
         this.currentTab.accumulatedTime = 0;
         this.currentTab.startTime = Date.now();
 
-        await this.badgeManager.updateBadge(this.currentTab.domain, () =>
+        console.log(`[saveTime] ${domain} ${totalTime}s (${date}), state reset`);
+        await this.storageManager.updateTimeOnly(domain, totalTime, date);
+        await this.badgeManager.updateBadge(domain, () =>
           this.getTotalDomainTime()
         );
       }
