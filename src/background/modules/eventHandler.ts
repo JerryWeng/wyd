@@ -66,7 +66,15 @@ export class EventHandler {
         });
       });
 
+      // Capture idle state before trackTab() resets badgeManager.isPaused
+      const wasPaused = this.tabTracker.badgeManager.paused;
       await this.tabTracker.trackTab(tab);
+
+      // If we were idle/paused, re-pause so the correct tab is tracked when
+      // the system becomes active, without starting a second interval
+      if (wasPaused) {
+        await this.tabTracker.pauseTracking();
+      }
     } catch (error) {
       console.error("Error getting tab info:", error);
       this.tabTracker.badgeManager.stopBadgeUpdates();
@@ -88,8 +96,8 @@ export class EventHandler {
   async handleWindowFocusChanged(windowId: number) {
     if (windowId === chrome.windows.WINDOW_ID_NONE) {
       if (this.tabTracker.badgeManager.isUpdating()) {
-        this.tabTracker.cleanup();
         await this.tabTracker.saveTime();
+        this.tabTracker.cleanup();
       }
     } else {
       if (!this.tabTracker.badgeManager.paused) {
