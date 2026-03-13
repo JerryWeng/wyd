@@ -161,7 +161,16 @@ const Popup = () => {
                                     <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
                                         alt={domain}
                                         className="site-favicon"
-                                        onError={(e) => { e.currentTarget.src = '../../assets/icons/default.png'; }} />
+                                        onError={(e) => {
+                                            const img = e.currentTarget;
+                                            if (img.src.includes('google.com')) {
+                                                img.src = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+                                            } else if (img.src.includes('duckduckgo.com')) {
+                                                img.src = `https://${domain}/favicon.ico`;
+                                            } else {
+                                                img.src = '/icons/default.png';
+                                            }
+                                        }} />
                                     <span className="site-name">{domain}</span>
                                 </div>
                                 <div className="time-info">

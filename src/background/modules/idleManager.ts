@@ -120,6 +120,7 @@ export class IdleManager {
   }
 
   async handleActive() {
+    this.idleSuppressedByMedia = false;
     if (this.isLocked) {
       console.log("System unlocked - resuming tracking");
       this.isLocked = false;
