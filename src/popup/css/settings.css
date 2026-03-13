@@ -219,6 +219,13 @@
   color: white;
 }
 
+.domain-error {
+  color: #e05252;
+  font-size: 11px;
+  margin-top: 4px;
+  display: block;
+}
+
 .domain-list {
   list-style: none;
   margin: 0.25rem 0 0;

@@ -39,10 +39,16 @@ const DEFAULT_EXCLUDED = [
   "chrome-extension:// pages (extensions)",
 ];
 
+function isValidDomain(domain: string): boolean {
+  if (domain === "localhost") return true;
+  return /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(domain);
+}
+
 const Settings = ({ onClose }: SettingsProps) => {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [activeView, setActiveView] = useState<ActiveView>("main");
   const [domainInput, setDomainInput] = useState("");
+  const [domainError, setDomainError] = useState<string | null>(null);
   const [showIdleTooltip, setShowIdleTooltip] = useState(false);
   const [confirmClear, setConfirmClear] = useState<
     Exclude<Category, "total"> | "all" | null
@@ -69,11 +75,20 @@ const Settings = ({ onClose }: SettingsProps) => {
   const addDomain = async () => {
     const raw = domainInput.trim().toLowerCase();
     if (!raw) return;
-    const domain = raw.replace(/^https?:\/\//, "").split("/")[0];
-    if (!domain || settings.ignoredDomains.includes(domain)) {
-      setDomainInput("");
+    const domain = raw
+      .replace(/^https?:\/\//, "")
+      .split("/")[0]
+      .replace(/^www\./, "");
+    if (!isValidDomain(domain)) {
+      setDomainError(`"${domain}" is not a valid domain.`);
       return;
     }
+    if (settings.ignoredDomains.includes(domain)) {
+      setDomainInput("");
+      setDomainError(null);
+      return;
+    }
+    setDomainError(null);
     await updateSetting("ignoredDomains", [
       ...settings.ignoredDomains,
       domain,
@@ -160,7 +175,7 @@ const Settings = ({ onClose }: SettingsProps) => {
                   type="text"
                   placeholder="e.g. github.com, localhost"
                   value={domainInput}
-                  onChange={(e) => setDomainInput(e.target.value)}
+                  onChange={(e) => { setDomainInput(e.target.value); setDomainError(null); }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") addDomain();
                   }}
@@ -169,6 +184,9 @@ const Settings = ({ onClose }: SettingsProps) => {
                   Add
                 </button>
               </div>
+              {domainError && (
+                <span className="domain-error">{domainError}</span>
+              )}
               {settings.ignoredDomains.length === 0 ? (
                 <span className="settings-row-desc">No custom domains added yet.</span>
               ) : (
