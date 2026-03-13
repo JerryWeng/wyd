@@ -6,6 +6,8 @@ export class IdleManager {
   private isIdle: boolean;
   private idleTrackingEnabled: boolean;
   private idleTimeoutMinutes: number;
+  private isMediaPlaying: boolean;
+  private idleSuppressedByMedia: boolean;
 
   constructor(tabTracker: TabTracker) {
     this.tabTracker = tabTracker;
@@ -13,10 +15,19 @@ export class IdleManager {
     this.isIdle = false;
     this.idleTrackingEnabled = true;
     this.idleTimeoutMinutes = 5;
+    this.isMediaPlaying = false;
+    this.idleSuppressedByMedia = false;
     this.initialize();
   }
 
   initialize() {
+    // Restore lock state persisted across service worker restarts
+    chrome.storage.session.get(["systemLocked"], (result) => {
+      if (result.systemLocked) {
+        this.isLocked = true;
+      }
+    });
+
     // Load initial settings
     chrome.storage.sync.get(["settings"], (result) => {
       this.idleTrackingEnabled = result.settings?.idleTrackingEnabled ?? true;
@@ -66,7 +77,9 @@ export class IdleManager {
       this.isLocked = true;
       this.isIdle = false;
 
+      await chrome.storage.session.set({ systemLocked: true });
       await this.tabTracker.saveTime();
+      this.tabTracker.badgeManager.pauseBadgeUpdates();
       this.tabTracker.cleanup();
     }
   }
@@ -74,9 +87,36 @@ export class IdleManager {
   async handleIdle() {
     if (!this.idleTrackingEnabled || this.isIdle || this.isLocked) return;
 
+    const mediaActive = await this.checkActiveTabAudible() || this.isMediaPlaying;
+    if (mediaActive) {
+      console.log("Media playing - suppressing idle pause");
+      this.idleSuppressedByMedia = true;
+      return;
+    }
+
     console.log("System idle - pausing tracking");
     this.isIdle = true;
     await this.tabTracker.pauseTracking();
+  }
+
+  setMediaPlaying(isPlaying: boolean) {
+    this.isMediaPlaying = isPlaying;
+    if (!isPlaying && this.idleSuppressedByMedia) {
+      this.idleSuppressedByMedia = false;
+      chrome.idle.queryState(this.idleTimeoutMinutes * 60, async (state) => {
+        if (state === "idle" && !this.isLocked) {
+          await this.handleIdle();
+        }
+      });
+    }
+  }
+
+  private checkActiveTabAudible(): Promise<boolean> {
+    return new Promise((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        resolve(tabs[0]?.audible ?? false);
+      });
+    });
   }
 
   async handleActive() {
@@ -84,6 +124,7 @@ export class IdleManager {
       console.log("System unlocked - resuming tracking");
       this.isLocked = false;
       this.isIdle = false;
+      await chrome.storage.session.set({ systemLocked: false });
       await this.tabTracker.initialize();
     } else if (this.isIdle) {
       console.log("System active - resuming tracking");

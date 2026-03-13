@@ -109,11 +109,7 @@ export class TabTracker {
     this.currentTab.id = tab.id;
     this.currentTab.domain = this.getDomain(tab.url);
 
-    // Treat ignored domains the same as untrackable ones
-    if (
-      this.currentTab.domain &&
-      this.ignoredDomains.includes(this.currentTab.domain)
-    ) {
+    if (this.currentTab.domain && this.ignoredDomains.includes(this.currentTab.domain)) {
       this.currentTab.domain = null;
     }
 

@@ -21,8 +21,6 @@ export class ChartManager {
       "rgba(255, 20, 147, 0.8)",
       "rgba(0, 71, 171, 0.8)",
       "rgba(128, 0, 128, 0.8)",
-      "rgba(210, 180, 140, 0.8)",
-      "rgba(0, 128, 0, 0.8)",
     ];
   }
 
@@ -94,7 +92,7 @@ export class ChartManager {
       processedSiteData as Record<string, { time: number }>,
     )
       .sort((a, b) => b[1].time - a[1].time)
-      .slice(0, 10);
+      .slice(0, 8);
 
     return {
       labels: sortedSites.map(([domain]) => domain),

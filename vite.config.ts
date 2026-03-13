@@ -12,6 +12,7 @@ export default defineConfig({
       input: {
         popup: resolve(__dirname, "index.html"),
         background: resolve(__dirname, "src/background/background.ts"),
+        content: resolve(__dirname, "src/content/mediaDetector.ts"),
       },
       output: {
         entryFileNames: "[name].js",

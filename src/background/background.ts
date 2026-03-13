@@ -14,15 +14,22 @@ class BackgroundScript {
     this.badgeManager = new BadgeManager();
     this.tabTracker = new TabTracker(this.storageManager, this.badgeManager);
 
-    new IdleManager(this.tabTracker);
-    new EventHandler(this.tabTracker);
+    const idleManager = new IdleManager(this.tabTracker);
+    new EventHandler(this.tabTracker, idleManager);
 
     this.initialize();
   }
 
   async initialize() {
     console.log("Background script initialized");
-    await this.tabTracker.initialize();
+    chrome.storage.session.get(["systemLocked"], (result) => {
+      if (result.systemLocked) return; // Was locked — handleActive() will resume when unlocked
+      chrome.idle.queryState(60, async (state) => {
+        if (state !== "locked") {
+          await this.tabTracker.initialize();
+        }
+      });
+    });
   }
 }
 

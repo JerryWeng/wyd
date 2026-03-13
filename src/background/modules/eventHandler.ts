@@ -1,10 +1,13 @@
 import TabTracker from "./tabTracker.js";
+import { IdleManager } from "./idleManager.js";
 
 export class EventHandler {
   private tabTracker: TabTracker;
+  private idleManager: IdleManager;
 
-  constructor(tabTracker: TabTracker) {
+  constructor(tabTracker: TabTracker, idleManager: IdleManager) {
     this.tabTracker = tabTracker;
+    this.idleManager = idleManager;
     this.setupEventListeners();
   }
 
@@ -139,9 +142,16 @@ export class EventHandler {
 
   handleRuntimeMessage(
     message: any,
-    _sender: chrome.runtime.MessageSender,
+    sender: chrome.runtime.MessageSender,
     sendResponse: (response?: any) => void
   ) {
+    if (message.action === "mediaPlayingState") {
+      if (sender.tab?.id === this.tabTracker.currentTabId) {
+        this.idleManager.setMediaPlaying(message.isPlaying);
+      }
+      return;
+    }
+
     if (message.action === "saveTime") {
       (async () => {
         try {
