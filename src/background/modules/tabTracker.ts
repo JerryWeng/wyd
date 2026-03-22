@@ -280,13 +280,6 @@ export class TabTracker {
   }
 
   private loadSettings(): Promise<void> {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get(["settings"], (result) => {
-        this.ignoredDomains = result.settings?.ignoredDomains ?? [];
-        resolve();
-      });
-    });
-
     if (!this.settingsListenerAdded) {
       this.settingsListenerAdded = true;
       chrome.storage.onChanged.addListener((changes, area) => {
@@ -315,6 +308,13 @@ export class TabTracker {
         }
       });
     }
+
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(["settings"], (result) => {
+        this.ignoredDomains = result.settings?.ignoredDomains ?? [];
+        resolve();
+      });
+    });
   }
 
   async initialize() {
