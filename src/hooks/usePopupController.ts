@@ -23,14 +23,19 @@ export const usePopupController = () => {
     });
   }, []);
 
+  // Establish a single persistent port for the popup lifetime.
+  // Each onDisconnect fires handlePopupClosed exactly once when the popup truly closes.
+  useEffect(() => {
+    const port = chrome.runtime.connect({ name: "popup" });
+    return () => port.disconnect();
+  }, []);
+
   useEffect(() => {
     const loadAndDisplayData = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Initialize the extension and get data
-        chrome.runtime.connect({ name: "popup" });
         await StorageService.saveCurrentTime();
         const siteInfo = await StorageService.getSiteInfo();
 

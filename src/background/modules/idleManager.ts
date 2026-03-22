@@ -119,6 +119,10 @@ export class IdleManager {
     });
   }
 
+  get isSuppressed(): boolean {
+    return this.isIdle || this.isLocked;
+  }
+
   async handleActive() {
     this.idleSuppressedByMedia = false;
     if (this.isLocked) {

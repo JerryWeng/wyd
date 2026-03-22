@@ -89,6 +89,40 @@ export class StorageManager {
     });
   }
 
+  async clearDataRange(range: string): Promise<void> {
+    const daysBackMap: Record<string, number> = {
+      today: 1,
+      "1W": 7,
+      "1M": 30,
+      "1Y": 365,
+    };
+    const daysBack = daysBackMap[range];
+    if (!daysBack) return;
+
+    return this.withWriteLock(async () => {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const cutoff = new Date(now);
+      cutoff.setDate(now.getDate() - (daysBack - 1));
+
+      const siteInfo = (await this.getStorageData<RawSiteInfo>("siteInfo")) || {};
+      for (const dateStr of Object.keys(siteInfo)) {
+        const [year, month, day] = dateStr.split("-").map(Number);
+        const date = new Date(year, month - 1, day);
+        if (date >= cutoff) {
+          delete siteInfo[dateStr];
+        }
+      }
+      await this.setStorageData({ siteInfo });
+    });
+  }
+
+  async clearAllData(): Promise<void> {
+    return this.withWriteLock(async () => {
+      await this.setStorageData({ siteInfo: {} });
+    });
+  }
+
   async getTotalDomainTime(domain: string | null, date?: string) {
     if (!domain) return 0;
 

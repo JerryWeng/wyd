@@ -144,6 +144,21 @@ export class TabTracker {
   async resumeTracking() {
     if (!this.currentTab.domain) return;
 
+    // If the session paused across midnight, save pre-pause time to the old date
+    // and start fresh on the new date so time isn't attributed to the wrong day
+    const today = this.storageManager.getLocalDateString();
+    if (this.currentTab.currentDate && today !== this.currentTab.currentDate) {
+      if (this.currentTab.accumulatedTime > 0) {
+        await this.storageManager.updateTimeOnly(
+          this.currentTab.domain,
+          this.currentTab.accumulatedTime,
+          this.currentTab.currentDate
+        );
+        this.currentTab.accumulatedTime = 0;
+      }
+      this.currentTab.currentDate = today;
+    }
+
     this.currentTab.startTime = Date.now();
     this.currentTab.lastTickTime = Date.now();
 
@@ -264,9 +279,12 @@ export class TabTracker {
     }
   }
 
-  private loadSettings() {
-    chrome.storage.sync.get(["settings"], (result) => {
-      this.ignoredDomains = result.settings?.ignoredDomains ?? [];
+  private loadSettings(): Promise<void> {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(["settings"], (result) => {
+        this.ignoredDomains = result.settings?.ignoredDomains ?? [];
+        resolve();
+      });
     });
 
     if (!this.settingsListenerAdded) {
@@ -275,13 +293,32 @@ export class TabTracker {
         if (area === "sync" && changes.settings?.newValue) {
           this.ignoredDomains =
             changes.settings.newValue.ignoredDomains ?? this.ignoredDomains;
+
+          // If the currently tracked domain is now ignored, stop tracking it immediately
+          if (
+            this.currentTab.domain &&
+            this.ignoredDomains.some(
+              (ignored) =>
+                this.currentTab.domain === ignored ||
+                (this.currentTab.domain as string).endsWith(`.${ignored}`)
+            )
+          ) {
+            this.saveTime().then(() => {
+              if (this.currentTab.intervalId) {
+                clearInterval(this.currentTab.intervalId);
+                this.currentTab.intervalId = null;
+              }
+              this.currentTab.domain = null;
+              this.badgeManager.clearBadge();
+            });
+          }
         }
       });
     }
   }
 
   async initialize() {
-    this.loadSettings();
+    await this.loadSettings();
     this.currentTab.currentDate = this.storageManager.getLocalDateString();
 
     try {

@@ -61,9 +61,15 @@ export class BadgeManager {
   ) {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
+      this.updateInterval = null;
     }
 
+    if (this.isPaused) return;
+
     const initialTotalTime = await getTotalDomainTime();
+
+    // Guard: another call may have started an interval or paused while we were awaiting
+    if (this.isPaused || this.updateInterval) return;
     let currentUpdateFrequency = initialTotalTime < 60 ? 1000 : 5000;
 
     console.log(

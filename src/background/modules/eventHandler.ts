@@ -30,8 +30,7 @@ export class EventHandler {
     });
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      this.handleRuntimeMessage(message, sender, sendResponse);
-      return true;
+      return this.handleRuntimeMessage(message, sender, sendResponse);
     });
 
     chrome.runtime.onConnect.addListener((port) => {
@@ -49,9 +48,11 @@ export class EventHandler {
       await this.handleSuspend();
     });
 
-    chrome.runtime.onStartup.addListener(() => {
-      console.log("Chrome started up - initializing extension");
-      this.handleStartup();
+    chrome.tabs.onRemoved.addListener(async (tabId) => {
+      if (tabId === this.tabTracker.currentTabId) {
+        await this.tabTracker.saveTime();
+        this.tabTracker.cleanup();
+      }
     });
   }
 
@@ -70,7 +71,7 @@ export class EventHandler {
       });
 
       // Capture idle state before trackTab() resets badgeManager.isPaused
-      const wasPaused = this.tabTracker.badgeManager.paused;
+      const wasPaused = this.idleManager.isSuppressed;
       await this.tabTracker.trackTab(tab);
 
       // If we were idle/paused, re-pause so the correct tab is tracked when
@@ -91,8 +92,12 @@ export class EventHandler {
     const newDomain = this.tabTracker.getDomain(changeInfo.url);
 
     if (newDomain !== this.tabTracker.currentDomain) {
+      const wasPaused = this.idleManager.isSuppressed;
       await this.tabTracker.saveInfo();
       await this.tabTracker.trackTab(tab);
+      if (wasPaused) {
+        await this.tabTracker.pauseTracking();
+      }
     }
   }
 
@@ -101,41 +106,55 @@ export class EventHandler {
       if (this.tabTracker.badgeManager.isUpdating()) {
         await this.tabTracker.saveTime();
         this.tabTracker.cleanup();
+      } else if (
+        this.tabTracker.badgeManager.paused &&
+        this.tabTracker.currentTab.accumulatedTime > 0
+      ) {
+        // Persist any accumulated time from before the idle pause
+        await this.tabTracker.saveTime();
       }
     } else {
-      if (!this.tabTracker.badgeManager.paused) {
-        try {
-          const tabs: chrome.tabs.Tab[] = await new Promise(
-            (resolve, reject) => {
-              chrome.tabs.query(
-                { active: true, windowId: windowId },
-                (tabs) => {
-                  if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                  } else {
-                    resolve(tabs);
-                  }
+      try {
+        const tabs: chrome.tabs.Tab[] = await new Promise(
+          (resolve, reject) => {
+            chrome.tabs.query(
+              { active: true, windowId: windowId },
+              (tabs) => {
+                if (chrome.runtime.lastError) {
+                  reject(chrome.runtime.lastError);
+                } else {
+                  resolve(tabs);
                 }
-              );
-            }
-          );
+              }
+            );
+          }
+        );
 
-          if (tabs.length > 0) {
+        if (tabs.length > 0) {
+          if (!this.idleManager.isSuppressed) {
             const newDomain = this.tabTracker.getDomain(tabs[0].url);
 
             if (newDomain === this.tabTracker.currentDomain) {
-              this.tabTracker.currentTab.startTime = Date.now();
+              // Same domain in newly focused window — just ensure the interval is running
               if (!this.tabTracker.currentTab.intervalId) {
                 await this.tabTracker.trackTab(tabs[0]);
               }
             } else {
               await this.tabTracker.trackTab(tabs[0]);
             }
+          } else {
+            // System is idle/locked — update which tab to resume on when active again
+            const newDomain = this.tabTracker.getDomain(tabs[0].url);
+            if (newDomain !== this.tabTracker.currentDomain) {
+              await this.tabTracker.saveInfo();
+              await this.tabTracker.trackTab(tabs[0]);
+              await this.tabTracker.pauseTracking();
+            }
           }
-        } catch (error) {
-          console.error("Error handling window focus:", error);
-          this.tabTracker.badgeManager.stopBadgeUpdates();
         }
+      } catch (error) {
+        console.error("Error handling window focus:", error);
+        this.tabTracker.badgeManager.stopBadgeUpdates();
       }
     }
   }
@@ -144,21 +163,19 @@ export class EventHandler {
     message: any,
     sender: chrome.runtime.MessageSender,
     sendResponse: (response?: any) => void
-  ) {
+  ): boolean {
     if (message.action === "mediaPlayingState") {
       if (sender.tab?.id === this.tabTracker.currentTabId) {
         this.idleManager.setMediaPlaying(message.isPlaying);
       }
-      return;
+      return false;
     }
 
     if (message.action === "saveTime") {
       (async () => {
         try {
           await this.tabTracker.saveTime();
-
           await this.tabTracker.pauseTracking();
-
           console.log("Time saved and tracking paused due to popup opening");
           sendResponse({ success: true });
         } catch (error) {
@@ -166,12 +183,46 @@ export class EventHandler {
           if (error instanceof Error) {
             errorMessage = error.message;
           }
-
           console.error("Error saving time:", error);
           sendResponse({ success: false, error: errorMessage });
         }
       })();
+      return true;
     }
+
+    if (message.action === "clearData") {
+      (async () => {
+        try {
+          await this.tabTracker.saveTime();
+          await this.tabTracker.storageManager.clearDataRange(message.range);
+          sendResponse({ success: true });
+        } catch (error) {
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      })();
+      return true;
+    }
+
+    if (message.action === "clearAllData") {
+      (async () => {
+        try {
+          await this.tabTracker.saveTime();
+          await this.tabTracker.storageManager.clearAllData();
+          sendResponse({ success: true });
+        } catch (error) {
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      })();
+      return true;
+    }
+
+    return false;
   }
 
   async handleSuspend() {
@@ -183,11 +234,8 @@ export class EventHandler {
     }
   }
 
-  async handleStartup() {
-    await this.tabTracker.initialize();
-  }
-
   async handlePopupClosed() {
+    const wasPaused = this.idleManager.isSuppressed;
     try {
       const tabs: chrome.tabs.Tab[] = await new Promise((resolve, reject) => {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -203,9 +251,15 @@ export class EventHandler {
         const currentDomain = this.tabTracker.getDomain(tabs[0].url);
 
         if (currentDomain === this.tabTracker.currentDomain && currentDomain) {
-          await this.tabTracker.resumeTracking();
+          if (!wasPaused) {
+            await this.tabTracker.resumeTracking();
+          }
+          // If paused (system idle), leave tracking paused — it will resume via handleActive
         } else if (currentDomain !== this.tabTracker.currentDomain) {
           await this.tabTracker.trackTab(tabs[0]);
+          if (wasPaused) {
+            await this.tabTracker.pauseTracking();
+          }
         }
       }
     } catch (error) {
