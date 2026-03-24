@@ -13,6 +13,7 @@ import { usePopupController } from '../hooks/usePopupController';
 import { usePagination } from '../hooks/usePagination';
 import PieChart from '../components/PieChart';
 import Settings from '../components/Settings';
+import BlockPage from '../components/BlockPage';
 import { TimeFormatter } from '../utils/timeFormatter';
 import { DataProcessor } from '../utils/dataProcessor';
 
@@ -24,12 +25,13 @@ const Popup = () => {
         currentCategory,
         filterBy,
         sortOrder,
-        showSettings,
+        currentView,
         handleCategorySwitch,
         toggleSortOrder,
         toggleFilter,
         openSettings,
-        closeSettings,
+        openBlockPage,
+        closeView,
         allData
     } = usePopupController();
 
@@ -62,9 +64,9 @@ const Popup = () => {
 
     return (
         <div className="container">
-            {showSettings ? (
-                <Settings onClose={closeSettings} />
-            ) : (<>
+            {currentView === 'settings' && <Settings onClose={closeView} />}
+            {currentView === 'block' && <BlockPage onClose={closeView} />}
+            {currentView === 'main' && (<>
                 {/* Header */}
                 <div className="subcontainer">
                     <div className="title">
@@ -72,6 +74,12 @@ const Popup = () => {
                         <div className="logoName">WhatAreYouDoing</div>
                     </div>
                     <div className="options">
+                        <button id="blockBtn" onClick={openBlockPage} title="Block rules">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
+                                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                                <path d="M6.34 6.34L17.66 17.66" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                        </button>
                         <button id="settingsBtn" onClick={openSettings}>
                             <img src={SettingsIcon} alt="settings gear" />
                         </button>

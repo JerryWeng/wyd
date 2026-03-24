@@ -1,9 +1,11 @@
 import StorageManager from "./storageManager.js";
 import BadgeManager from "./badgeManager.js";
+import BlockManager from "./blockManager.js";
 
 export class TabTracker {
   public storageManager: StorageManager;
   public badgeManager: BadgeManager;
+  private blockManager: BlockManager;
   private ignoredDomains: string[] = [];
   private settingsListenerAdded: boolean = false;
   public currentTab: {
@@ -16,9 +18,10 @@ export class TabTracker {
     lastTickTime: number | null;
   };
 
-  constructor(storageManager: StorageManager, badgeManager: BadgeManager) {
+  constructor(storageManager: StorageManager, badgeManager: BadgeManager, blockManager: BlockManager) {
     this.storageManager = storageManager;
     this.badgeManager = badgeManager;
+    this.blockManager = blockManager;
 
     this.currentTab = {
       id: undefined,
@@ -126,6 +129,14 @@ export class TabTracker {
     this.currentTab.currentDate = this.storageManager.getLocalDateString();
 
     if (this.currentTab.domain) {
+      const blockResult = await this.blockManager.isBlocked(this.currentTab.domain, 0);
+      if (blockResult) {
+        await this.redirectTab(this.currentTab.id, blockResult.redirectUrl);
+        this.currentTab.domain = null;
+        this.badgeManager.clearBadge();
+        return;
+      }
+
       await this.badgeManager.startBadgeUpdates(
         this.currentTab.domain,
         () => this.getCurrentSessionTime(),
@@ -139,6 +150,13 @@ export class TabTracker {
       this.badgeManager.clearBadge();
       console.log(`Not tracking tab: ${tab.id} (invalid domain)`);
     }
+  }
+
+  private redirectTab(tabId: number | undefined, url: string): Promise<void> {
+    if (!tabId) return Promise.resolve();
+    return new Promise((resolve) => {
+      chrome.tabs.update(tabId, { url }, () => resolve());
+    });
   }
 
   async resumeTracking() {
@@ -206,6 +224,22 @@ export class TabTracker {
         await this.badgeManager.updateBadge(this.currentTab.domain, () =>
           this.getTotalDomainTime()
         );
+      }
+
+      // Periodic block enforcement for time-based rules (dailyLimit / weeklyLimit)
+      if (this.currentTab.domain) {
+        const inFlight = this.getCurrentSessionTime();
+        const blockResult = await this.blockManager.isBlocked(this.currentTab.domain, inFlight);
+        if (blockResult) {
+          await this.saveTime();
+          await this.redirectTab(this.currentTab.id, blockResult.redirectUrl);
+          if (this.currentTab.intervalId) {
+            clearInterval(this.currentTab.intervalId);
+            this.currentTab.intervalId = null;
+          }
+          this.currentTab.domain = null;
+          this.badgeManager.clearBadge();
+        }
       }
     }, 30000);
   }

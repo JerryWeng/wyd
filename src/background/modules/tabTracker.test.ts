@@ -24,6 +24,10 @@ const makeBadgeMock = () => ({
   paused: false,
 })
 
+const makeBlockMock = () => ({
+  isBlocked: vi.fn(async () => null),
+})
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -53,17 +57,21 @@ function setupTracking(
 // Tests
 // ---------------------------------------------------------------------------
 
+type BlockMock = ReturnType<typeof makeBlockMock>
+
 describe('TabTracker', () => {
   let tracker: TabTracker
   let storage: StorageMock
   let badge: BadgeMock
+  let block: BlockMock
 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-03-03T12:00:00.000Z'))
     storage = makeStorageMock()
     badge = makeBadgeMock()
-    tracker = new TabTracker(storage as any, badge as any)
+    block = makeBlockMock()
+    tracker = new TabTracker(storage as any, badge as any, block as any)
   })
 
   afterEach(() => {

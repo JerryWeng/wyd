@@ -1,12 +1,27 @@
 // category type
 export type Category = "today" | "1W" | "1M" | "1Y" | "total";
 
+// block rule types
+export type BlockType = "dailyLimit" | "weeklyLimit" | "scheduled" | "daysOfWeek";
+
+export interface BlockRule {
+  domain: string;
+  type: BlockType;
+  timeLimit?: number;   // minutes — dailyLimit / weeklyLimit
+  startTime?: string;   // "HH:MM" — scheduled
+  endTime?: string;     // "HH:MM" — scheduled
+  days?: number[];      // 0–6 (Sun=0) — daysOfWeek
+  redirectUrl?: string; // per-rule override; empty = use defaultRedirectUrl or built-in page
+}
+
 // settings types
 export interface AppSettings {
   idleTrackingEnabled: boolean;
   idleTimeoutMinutes: number;
   ignoredDomains: string[];
   defaultView: Category;
+  blocks: BlockRule[];
+  defaultRedirectUrl: string; // empty string = use built-in redirect.html
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -14,6 +29,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   idleTimeoutMinutes: 5,
   ignoredDomains: [],
   defaultView: "today",
+  blocks: [],
+  defaultRedirectUrl: "",
 };
 
 // raw data types

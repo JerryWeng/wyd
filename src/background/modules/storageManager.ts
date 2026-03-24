@@ -140,6 +140,28 @@ export class StorageManager {
     return 0;
   }
 
+  async getTotalDomainTimeRange(domain: string, dates: string[]): Promise<number> {
+    if (!domain || dates.length === 0) return 0;
+    const siteInfo = (await this.getStorageData<RawSiteInfo>("siteInfo")) || {};
+    return dates.reduce((total, date) => {
+      return total + (siteInfo[date]?.time?.[domain] ?? 0);
+    }, 0);
+  }
+
+  getDateStringsForPastDays(n: number): string[] {
+    const dates: string[] = [];
+    const now = new Date();
+    for (let i = 0; i < n; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      dates.push(`${year}-${month}-${day}`);
+    }
+    return dates;
+  }
+
   getLocalDateString() {
     const now = new Date();
     const year = now.getFullYear();

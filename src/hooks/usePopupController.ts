@@ -7,7 +7,8 @@ export const usePopupController = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allData, setAllData] = useState<ProcessedSiteInfo>({});
-  const [showSettings, setShowSettings] = useState(false);
+  type PopupView = "main" | "settings" | "block";
+  const [currentView, setCurrentView] = useState<PopupView>("main");
   const [refreshTick, setRefreshTick] = useState(0);
 
   const [currentCategory, setCurrentCategory] = useState<Category>("today");
@@ -82,15 +83,16 @@ export const usePopupController = () => {
     setFilterBy((prev) => (prev === "time" ? "session" : "time"));
   };
 
-  const openSettings = () => setShowSettings(true);
-  const closeSettings = async () => {
+  const openSettings = () => setCurrentView("settings");
+  const openBlockPage = () => setCurrentView("block");
+  const closeView = async () => {
     const s = await StorageService.getSettings();
     if (s.defaultView !== currentCategory) {
       setCurrentCategory(s.defaultView); // triggers the data effect with the new category
     } else {
       setRefreshTick((prev) => prev + 1); // forces re-fetch without changing category
     }
-    setShowSettings(false);
+    setCurrentView("main");
   };
 
   return {
@@ -100,12 +102,13 @@ export const usePopupController = () => {
     currentCategory,
     filterBy,
     sortOrder,
-    showSettings,
+    currentView,
     handleCategorySwitch,
     toggleSortOrder,
     toggleFilter,
     openSettings,
-    closeSettings,
+    openBlockPage,
+    closeView,
     allData,
   };
 };

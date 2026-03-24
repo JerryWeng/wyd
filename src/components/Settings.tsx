@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { StorageService } from "../utils/storageService";
 import type { AppSettings, Category } from "../types/data.types";
 import { DEFAULT_SETTINGS } from "../types/data.types";
+import { isValidDomain, normalizeDomainInput } from "../utils/domainUtils";
 import "../popup/css/settings.css";
 
 interface SettingsProps {
@@ -39,11 +40,6 @@ const DEFAULT_EXCLUDED = [
   "chrome-extension:// pages (extensions)",
 ];
 
-function isValidDomain(domain: string): boolean {
-  if (domain === "localhost") return true;
-  return /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(domain);
-}
-
 const Settings = ({ onClose }: SettingsProps) => {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [activeView, setActiveView] = useState<ActiveView>("main");
@@ -73,12 +69,8 @@ const Settings = ({ onClose }: SettingsProps) => {
   };
 
   const addDomain = async () => {
-    const raw = domainInput.trim().toLowerCase();
-    if (!raw) return;
-    const domain = raw
-      .replace(/^https?:\/\//, "")
-      .split("/")[0]
-      .replace(/^www\./, "");
+    if (!domainInput.trim()) return;
+    const domain = normalizeDomainInput(domainInput);
     if (!isValidDomain(domain)) {
       setDomainError(`"${domain}" is not a valid domain.`);
       return;

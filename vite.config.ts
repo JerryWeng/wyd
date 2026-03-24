@@ -13,6 +13,7 @@ export default defineConfig({
         popup: resolve(__dirname, "index.html"),
         background: resolve(__dirname, "src/background/background.ts"),
         content: resolve(__dirname, "src/content/mediaDetector.ts"),
+        redirect: resolve(__dirname, "redirect.html"),
       },
       output: {
         entryFileNames: "[name].js",
