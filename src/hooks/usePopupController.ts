@@ -12,7 +12,7 @@ export const usePopupController = () => {
   const [refreshTick, setRefreshTick] = useState(0);
 
   const [currentCategory, setCurrentCategory] = useState<Category>("today");
-  const [filterBy, setFilterBy] = useState<"time" | "session">("time");
+  const [filterBy, setFilterBy] = useState<"time" | "session" | "domain">("time");
   const [sortOrder, setSortOrder] = useState<"ascending" | "descending">(
     "descending",
   );
@@ -73,14 +73,12 @@ export const usePopupController = () => {
     setCurrentCategory(category);
   };
 
-  const toggleSortOrder = () => {
-    setSortOrder((prev) =>
-      prev === "descending" ? "ascending" : "descending",
-    );
-  };
-
-  const toggleFilter = () => {
-    setFilterBy((prev) => (prev === "time" ? "session" : "time"));
+  const handleSortSelect = (type: "time" | "session" | "domain") => {
+    if (type === filterBy) {
+      setSortOrder((prev) => prev === "descending" ? "ascending" : "descending");
+    } else {
+      setFilterBy(type);
+    }
   };
 
   const openSettings = () => setCurrentView("settings");
@@ -104,8 +102,7 @@ export const usePopupController = () => {
     sortOrder,
     currentView,
     handleCategorySwitch,
-    toggleSortOrder,
-    toggleFilter,
+    handleSortSelect,
     openSettings,
     openBlockPage,
     closeView,

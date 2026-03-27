@@ -131,6 +131,9 @@ export class DataProcessor {
         return sortOrder === "descending"
           ? b[1].time - a[1].time
           : a[1].time - b[1].time;
+      } else if (filterBy === "domain") {
+        const cmp = a[0].localeCompare(b[0]);
+        return sortOrder === "ascending" ? cmp : -cmp;
       } else {
         return sortOrder === "descending"
           ? b[1].sessions - a[1].sessions

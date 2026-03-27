@@ -94,10 +94,10 @@
   font-weight: 600;
   font-size: 0.875rem;
   color: var(--accent-bg);
-  background: rgba(144, 224, 239, 0.3);
+  background: #e0e7ff;
   padding: 0.2rem 0.6rem;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(144, 224, 239, 0.5);
+  border: 1px solid #e2e4ed;
   white-space: nowrap;
 }
 
