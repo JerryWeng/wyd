@@ -19,30 +19,18 @@ export class TimeFormatter {
     return timeDisplay;
   }
 
-  static getDateRangeLabel(category: Category): string {
-    const today = new Date();
-
-    const fmt = (d: Date, includeYear = false): string => {
-      const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-      if (includeYear) opts.year = "numeric";
-      return d.toLocaleDateString("en-US", opts);
-    };
-
+  static getDateRangeLabel(category: Category) {
     if (category === "today") {
-      return fmt(today, true);
+      return "Today";
+    } else if (category === "1W") {
+      return "Past Week";
+    } else if (category === "1M") {
+      return "Past Month";
+    } else if (category === "1Y") {
+      return "Past Year";
+    } else if (category === "total") {
+      return "All Time";
     }
-    if (category === "total") {
-      return "All time";
-    }
-
-    const daysBack = category === "1W" ? 7 : category === "1M" ? 30 : 365;
-    const start = new Date(today);
-    start.setDate(today.getDate() - (daysBack - 1));
-
-    const sameYear = start.getFullYear() === today.getFullYear();
-    return sameYear
-      ? `${fmt(start)} – ${fmt(today)}`
-      : `${fmt(start, true)} – ${fmt(today, true)}`;
   }
 
   static getLocalDateString() {

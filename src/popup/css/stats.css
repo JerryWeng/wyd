@@ -77,7 +77,7 @@
 
 .site-name {
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -96,7 +96,7 @@
 
 .time-spent {
   font-weight: 600;
-  font-size: 0.70rem;
+  font-size: 0.65rem;
   color: var(--accent-bg);
   background: #e0e7ff;
   padding: 0.2rem 0.6rem;
@@ -107,7 +107,7 @@
 
 .session-count {
   font-weight: 500;
-  font-size: 0.60rem;
+  font-size: 0.55rem;
   color: var(--text-secondary);
   background: var(--btn-color);
   padding: 0.1rem 0.4rem;

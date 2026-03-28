@@ -19,7 +19,7 @@
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   background: var(--btn-color);
-  padding: 3px;
+  padding: 1px;
   gap: 4px;
 }
 
@@ -27,14 +27,14 @@
   display: flex;
   gap: 0.25rem;
   align-items: center;
-  height: 2rem;
+  height: 1.5rem;
   padding: 0 0.625rem;
   background: transparent;
   color: var(--text-secondary);
   border: none;
   border-radius: var(--radius-lg);
   outline: none;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -88,7 +88,7 @@
   background: var(--btn-color);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  padding: 0.125rem;
+  padding: 1px;
   gap: 0.25rem;
   box-shadow: var(--shadow-sm);
 }
@@ -97,17 +97,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
   padding: 0;
   background: white;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.65rem;
   transition: all 0.2s ease;
-  min-width: 1.75rem;
+  min-width: 1.5rem;
 }
 
 .pageControl:hover:not(:disabled) {
@@ -137,7 +137,7 @@
 #pageNumber {
   display: flex;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: var(--text-primary);
   padding: 0 0.5rem;
@@ -145,14 +145,14 @@
   letter-spacing: 0.025em;
 }
 
-#currentPageNum,
+#currentPageNum,x
 #pageInput {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 1.5rem;
   height: 1.25rem;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   font-family: inherit;
   color: var(--text-primary);
