@@ -4,17 +4,9 @@
   background: white;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
 }
 
-#chart-section:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--border-medium);
-}
 
 #chart-container {
   width: 100%;

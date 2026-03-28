@@ -75,8 +75,8 @@ const Popup = () => {
                     <div className="options">
                         <button id="blockBtn" onClick={openBlockPage} title="Block rules">
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
-                                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
-                                <path d="M6.34 6.34L17.66 17.66" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                                <path d="M6.34 6.34L17.66 17.66" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                             </svg>
                         </button>
                         <button id="settingsBtn" onClick={openSettings}>
@@ -147,7 +147,7 @@ const Popup = () => {
                                 ) : (
                                     <span id="currentPageNum" onClick={startEditingPage} title="Click to jump to page">{currentPage}</span>
                                 )}
-                                {' '}of {totalPages}
+                                {' '}&nbsp;of {totalPages}
                             </div>
                             <button id="nextPage" className="pageControl" onClick={goToNextPage} disabled={isLastPage}>
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -184,7 +184,7 @@ const Popup = () => {
                                                     img.src = '/icons/default.png';
                                                 }
                                             }} />
-                                        <span className="site-name">{domain}</span>
+                                        <span className="site-name">{domain.replace(/^www\./, "")}</span>
                                     </div>
                                     <div className="time-info">
                                         <div className="time-spent">{TimeFormatter.formatTimeDisplay(data.time)}</div>
