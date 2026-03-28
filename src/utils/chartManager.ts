@@ -35,8 +35,45 @@ export class ChartManager {
     if (!ctx) {
       return;
     }
+
+    const total = data.values.reduce((sum, val) => sum + val, 0);
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const lines: string[] = [];
+    if (hours > 0) lines.push(`${hours} ${hours === 1 ? "hour" : "hours"}`);
+    lines.push(`${minutes} ${minutes === 1 ? "minute" : "minutes"}`);
+
+    const centerTextPlugin = {
+      id: "centerText",
+      afterDraw(chart: any) {
+        if (chart.tooltip?.getActiveElements().length > 0) return;
+
+        const { ctx: c, chartArea: { top, bottom, left, right } } = chart;
+        const cx = (left + right) / 2;
+        const cy = (top + bottom) / 2;
+        const lineHeight = 14;
+        const startY = (cy - ((lines.length - 1) * lineHeight) / 2) - 5;
+
+        c.save();
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        c.fillStyle = "#2e2e2eff";
+        c.font = "bold 15px sans-serif";
+        lines.forEach((line, i) => {
+          c.fillText(line, cx, startY + i * lineHeight);
+        });
+
+        // "Total" label below the time
+        c.fillStyle = "#888";
+        c.font = "12px sans-serif";
+        c.fillText("Total", cx, startY + lines.length * lineHeight);
+
+        c.restore();
+      },
+    };
+
     this.chart = new Chart(ctx, {
-      type: "pie",
+      type: "doughnut",
       data: {
         labels: data.labels,
         datasets: [
@@ -48,6 +85,7 @@ export class ChartManager {
         ],
       },
       options: this.getChartOptions(),
+      plugins: [centerTextPlugin],
     });
   }
 
@@ -60,6 +98,7 @@ export class ChartManager {
 
   getChartOptions() {
     return {
+      cutout: "70%",
       responsive: true,
       maintainAspectRatio: false,
       layout: { padding: 0 },
@@ -75,7 +114,7 @@ export class ChartManager {
         },
         tooltip: {
           callbacks: {
-            label: (context: TooltipItem<"pie">) => {
+            label: (context: TooltipItem<"doughnut">) => {
               const seconds = context.raw as number;
               return `${context.label}: ${TimeFormatter.formatTimeDisplay(
                 seconds,
@@ -95,7 +134,7 @@ export class ChartManager {
       .slice(0, 8);
 
     return {
-      labels: sortedSites.map(([domain]) => domain),
+      labels: sortedSites.map(([domain]) => domain.replace(/^www\./, "")),
       values: sortedSites.map(([, data]) => data.time),
     };
   }
