@@ -5,6 +5,7 @@
   --primary-bg: #f4f4f8;
   --secondary-bg: #eef0f6;
   --accent-bg: #4f46e5;
+  --accent-dark: #4338ca;
   --navbar-bg: #1e1b4b;
   --accent-light: #e0e7ff;
   --text-primary: #0f0e1a;
@@ -38,40 +39,6 @@ body {
   color: var(--text-primary);
   font-size: 14px;
   line-height: 1.4;
-}
-
-button {
-  cursor: pointer;
-  padding: 0.4rem 0.8rem;
-  background: var(--btn-color);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: inherit;
-}
-
-button:hover {
-  background: var(--accent-light);
-  border-color: var(--border-medium);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-button:active {
-  transform: translateY(0);
-  box-shadow: none;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .loading {
