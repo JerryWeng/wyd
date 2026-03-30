@@ -59,6 +59,7 @@ export class BlockManager {
       const domainMatches =
         domain === rule.domain || domain.endsWith(`.${rule.domain}`);
       if (!domainMatches) continue;
+      if (rule.enabled === false) continue;
 
       const blocked = await this.evaluateRule(rule, domain, inFlightSeconds);
       if (blocked) {

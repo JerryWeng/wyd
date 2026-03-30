@@ -3,7 +3,6 @@ import { StorageService } from "../utils/storageService";
 import type { AppSettings, BlockRule, BlockType, RawSiteInfo } from "../types/data.types";
 import { DEFAULT_SETTINGS } from "../types/data.types";
 import { isValidDomain, normalizeDomainInput } from "../utils/domainUtils";
-import { usePagination } from "../hooks/usePagination";
 import "../popup/css/settings.css";
 import "../popup/css/blockPage.css";
 
@@ -14,8 +13,8 @@ interface BlockPageProps {
 type BlockPageView = "list" | "form";
 
 const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
-  dailyLimit: "Daily limit",
-  weeklyLimit: "Weekly limit",
+  dailyLimit: "Daily",
+  weeklyLimit: "Weekly",
   scheduled: "Scheduled",
   daysOfWeek: "Days of week",
 };
@@ -139,6 +138,7 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
   const [domainError, setDomainError] = useState<string | null>(null);
   const [blockType, setBlockType] = useState<BlockType>("dailyLimit");
   const [timeLimit, setTimeLimit] = useState(60);
+  const [timeLimitInput, setTimeLimitInput] = useState("60");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -153,9 +153,6 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     StorageService.getSiteInfo().then(setSiteInfo);
   }, [settings.blocks]);
 
-  const { currentPage, totalPages, currentPageItems, goToNextPage, goToPreviousPage, isFirstPage, isLastPage } =
-    usePagination(settings.blocks, 3);
-
   const saveSettings = async (updated: AppSettings) => {
     setSettings(updated);
     await StorageService.saveSettings(updated);
@@ -167,6 +164,7 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     setDomainInput(rule.domain);
     setBlockType(rule.type);
     setTimeLimit(rule.timeLimit ?? 60);
+    setTimeLimitInput(String(rule.timeLimit ?? 60));
     setStartTime(rule.startTime ?? "09:00");
     setEndTime(rule.endTime ?? "17:00");
     setDays(rule.days ?? [1, 2, 3, 4, 5]);
@@ -190,10 +188,12 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
       return;
     }
 
+    const clampedTimeLimit = Math.max(1, Number(timeLimitInput) || 1);
+
     const newRule: BlockRule = {
       domain,
       type: blockType,
-      ...(blockType === "dailyLimit" || blockType === "weeklyLimit" ? { timeLimit } : {}),
+      ...(blockType === "dailyLimit" || blockType === "weeklyLimit" ? { timeLimit: clampedTimeLimit } : {}),
       ...(blockType === "scheduled" ? { startTime, endTime } : {}),
       ...(blockType === "daysOfWeek" ? { days } : {}),
       ...(redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
@@ -210,6 +210,13 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     setRedirectUrl("");
     setEditingIndex(null);
     setView("list");
+  };
+
+  const toggleRule = async (absoluteIndex: number) => {
+    const updatedBlocks = settings.blocks.map((r, i) =>
+      i === absoluteIndex ? { ...r, enabled: r.enabled === false ? true : false } : r
+    );
+    await saveSettings({ ...settings, blocks: updatedBlocks });
   };
 
   const removeRule = async (absoluteIndex: number) => {
@@ -232,6 +239,7 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     setRedirectUrl("");
     setBlockType("dailyLimit");
     setTimeLimit(60);
+    setTimeLimitInput("60");
     setStartTime("09:00");
     setEndTime("17:00");
     setDays([1, 2, 3, 4, 5]);
@@ -296,9 +304,13 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
                 <input
                   className="domain-input"
                   type="number"
-                  min={1}
-                  value={timeLimit}
-                  onChange={(e) => setTimeLimit(Math.max(1, Number(e.target.value)))}
+                  value={timeLimitInput}
+                  onChange={(e) => setTimeLimitInput(e.target.value)}
+                  onBlur={() => {
+                    const v = Math.max(1, Number(timeLimitInput) || 1);
+                    setTimeLimit(v);
+                    setTimeLimitInput(String(v));
+                  }}
                 />
               </div>
             </div>
@@ -371,8 +383,6 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
   }
 
   // ── List View ─────────────────────────────────────────────────────────────
-  const pageOffset = (currentPage - 1) * 3;
-
   return (
     <div className="settings-container">
       <div className="settings-header">
@@ -386,78 +396,97 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
       </div>
 
       <div className="settings-content">
-        <div className="settings-section">
-          <div className="settings-block">
-            {settings.blocks.length === 0 ? (
-              <span className="settings-row-desc">No block rules configured yet.</span>
-            ) : (
-              <>
-                <ul className="domain-list">
-                  {currentPageItems.map((rule, pageIdx) => {
-                    const absoluteIndex = pageOffset + pageIdx;
-                    const analytics = computeAnalytics(rule, siteInfo);
-                    return (
-                      <li key={absoluteIndex} className="domain-item">
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.125rem", flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-                            <span className="domain-name" style={{ flex: 1 }}>{rule.domain}</span>
-                            <span className="block-rule-badge">{BLOCK_TYPE_LABELS[rule.type]}</span>
-                            <button className="block-edit-btn" onClick={() => startEdit(absoluteIndex)}>
-                              <EditIcon />
-                            </button>
-                            <button className="domain-remove-btn" onClick={() => removeRule(absoluteIndex)}>✕</button>
-                          </div>
-                          {(rule.type === "dailyLimit" || rule.type === "weeklyLimit") &&
-                            analytics.usedSeconds !== undefined &&
-                            analytics.limitSeconds !== undefined && (
-                              <>
-                                <span className="block-usage-text">
-                                  {formatSeconds(analytics.usedSeconds)} / {formatSeconds(analytics.limitSeconds)}
-                                </span>
-                                <div className="block-progress-bar">
-                                  <div
-                                    className="block-progress-fill"
-                                    style={{
-                                      width: `${analytics.percentUsed ?? 0}%`,
-                                      backgroundColor: getProgressColor(analytics.percentUsed ?? 0),
-                                    }}
-                                  />
-                                </div>
-                              </>
-                            )}
-                          {(rule.type === "scheduled" || rule.type === "daysOfWeek") && (
-                            <span
-                              className={`block-status-badge ${analytics.isActiveNow ? "block-status-active" : "block-status-inactive"}`}
-                            >
-                              {analytics.isActiveNow ? "Active now" : "Inactive"}
-                            </span>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-                {totalPages > 1 && (
-                  <div id="paginationControls" style={{ justifyContent: "center", marginTop: "0.5rem" }}>
-                    <button className="pageControl" onClick={goToPreviousPage} disabled={isFirstPage}>
-                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+        {settings.blocks.length === 0 ? (
+          <span className="settings-row-desc">No block rules configured yet.</span>
+        ) : (() => {
+          const activeRules = settings.blocks.map((r, i) => ({ rule: r, index: i })).filter(({ rule }) => rule.enabled !== false);
+          const pausedRules = settings.blocks.map((r, i) => ({ rule: r, index: i })).filter(({ rule }) => rule.enabled === false);
+
+          const renderCard = (rule: BlockRule, absoluteIndex: number) => {
+            const analytics = computeAnalytics(rule, siteInfo);
+            return (
+              <div key={absoluteIndex} className={`block-rule-card${rule.enabled === false ? " block-rule-card-paused" : ""}`}>
+                <img
+                  src={navigator.onLine
+                    ? `https://www.google.com/s2/favicons?domain=${rule.domain}&sz=32`
+                    : '/icons/default.png'}
+                  alt=""
+                  className="block-rule-favicon"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!navigator.onLine || img.src.endsWith('/icons/default.png')) return;
+                    if (img.src.includes('google.com')) {
+                      img.src = `https://icons.duckduckgo.com/ip3/${rule.domain}.ico`;
+                    } else if (img.src.includes('duckduckgo.com')) {
+                      img.src = `https://${rule.domain}/favicon.ico`;
+                    } else {
+                      img.src = '/icons/default.png';
+                    }
+                  }}
+                />
+                <div className="block-rule-card-content">
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+                    <span className="domain-name">{rule.domain}</span>
+                    <span className="block-rule-badge">{BLOCK_TYPE_LABELS[rule.type]}</span>
+                    <div style={{ flex: 1 }} />
+                    <button
+                      className={`block-rule-toggle${rule.enabled !== false ? " block-rule-toggle-on" : ""}`}
+                      onClick={() => toggleRule(absoluteIndex)}
+                    >
+                      <span className="block-rule-toggle-knob" />
                     </button>
-                    <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                      {currentPage} of {totalPages}
-                    </span>
-                    <button className="pageControl" onClick={goToNextPage} disabled={isLastPage}>
-                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                    <button className="block-edit-btn" onClick={() => startEdit(absoluteIndex)}>
+                      <EditIcon />
                     </button>
+                    <button className="domain-remove-btn" onClick={() => removeRule(absoluteIndex)}>✕</button>
                   </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+                  {(rule.type === "dailyLimit" || rule.type === "weeklyLimit") &&
+                    analytics.usedSeconds !== undefined &&
+                    analytics.limitSeconds !== undefined && (
+                      <>
+                        <span className="block-usage-text">
+                          {formatSeconds(analytics.usedSeconds)} / {formatSeconds(analytics.limitSeconds)}
+                        </span>
+                        <div className="block-progress-bar">
+                          <div
+                            className="block-progress-fill"
+                            style={{
+                              width: `${analytics.percentUsed ?? 0}%`,
+                              backgroundColor: getProgressColor(analytics.percentUsed ?? 0),
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
+                  {(rule.type === "scheduled" || rule.type === "daysOfWeek") && (
+                    <span
+                      className={`block-status-badge ${analytics.isActiveNow ? "block-status-active" : "block-status-inactive"}`}
+                    >
+                      {analytics.isActiveNow ? "Active now" : "Inactive"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <>
+              {activeRules.length > 0 && (
+                <>
+                  <span className="block-section-label">ACTIVE ({activeRules.length})</span>
+                  {activeRules.map(({ rule, index }) => renderCard(rule, index))}
+                </>
+              )}
+              {pausedRules.length > 0 && (
+                <>
+                  <span className="block-section-label">PAUSED ({pausedRules.length})</span>
+                  {pausedRules.map(({ rule, index }) => renderCard(rule, index))}
+                </>
+              )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );

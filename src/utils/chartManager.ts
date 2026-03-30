@@ -13,14 +13,14 @@ export class ChartManager {
     this.canvas = canvas;
     this.chart = null;
     this.backgroundColors = [
-      "rgba(220, 20, 60, 0.8)",
-      "rgba(0, 128, 128, 0.8)",
-      "rgba(255, 165, 0, 0.8)",
-      "rgba(75, 0, 130, 0.8)",
-      "rgba(50, 205, 50, 0.8)",
-      "rgba(255, 20, 147, 0.8)",
-      "rgba(0, 71, 171, 0.8)",
-      "rgba(128, 0, 128, 0.8)",
+      "rgba(80, 50, 170, 0.9)",    // indigo   (darkest)
+      "rgba(140, 50, 210, 0.9)",   // violet
+      "rgba(50, 80, 220, 0.9)",    // blue
+      "rgba(200, 60, 160, 0.9)",   // pink
+      "rgba(210, 55, 70, 0.9)",    // red
+      "rgba(50, 185, 70, 0.9)",    // green
+      "rgba(210, 140, 40, 0.9)",   // orange
+      "rgba(210, 195, 50, 0.9)",   // yellow   (brightest)
     ];
   }
 

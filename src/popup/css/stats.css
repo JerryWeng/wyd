@@ -98,10 +98,10 @@
   font-weight: 600;
   font-size: 0.65rem;
   color: var(--accent-bg);
-  background: #e0e7ff;
+  background: var(--accent-light);
   padding: 0.2rem 0.6rem;
   border-radius: var(--radius-md);
-  border: 1px solid #e2e4ed;
+  border: 1px solid var(--border-light);
   white-space: nowrap;
 }
 

@@ -10,10 +10,10 @@
 .block-rule-badge {
   font-size: 0.6875rem;
   font-weight: 600;
-  padding: 0.125rem 0.375rem;
-  border-radius: var(--radius-sm, 4px);
-  background: var(--accent-bg);
-  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 1rem;
+  background: var(--accent-light);
+  color: var(--accent-bg);
   white-space: nowrap;
 }
 
@@ -104,7 +104,7 @@
 /* Time usage text */
 .block-usage-text {
   font-size: 0.6875rem;
-  color: var(--text-muted);
+  color: var(--text-primary);
   margin-top: 0.25rem;
 }
 
@@ -124,6 +124,84 @@
 .block-status-inactive {
   background: rgba(0, 0, 0, 0.06);
   color: var(--text-muted);
+}
+
+/* Favicon in block rule card */
+.block-rule-favicon {
+  width: 27px;
+  height: 27px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Individual block rule card */
+.block-rule-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Right-side content column */
+.block-rule-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Section label (ACTIVE / PAUSED) */
+.block-section-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 0.25rem 0.125rem;
+}
+
+/* Paused card */
+.block-rule-card-paused {
+  opacity: 0.5;
+}
+
+/* Toggle pill */
+.block-rule-toggle {
+  position: relative;
+  width: 2rem;
+  height: 1.125rem;
+  border-radius: 1rem;
+  background: var(--border-medium);
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.2s;
+}
+.block-rule-toggle-on {
+  background: var(--accent-bg);
+}
+.block-rule-toggle-knob {
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: white;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s;
+}
+.block-rule-toggle-on .block-rule-toggle-knob {
+  transform: translateX(0.875rem);
 }
 
 /* Edit button in rule card */
