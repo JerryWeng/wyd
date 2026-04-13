@@ -110,6 +110,27 @@ export class ChartManager {
             font: { size: 10 },
             padding: 8,
             color: "#666",
+            generateLabels: (chart: any) => {
+              const data = chart.data;
+              if (!data.labels?.length || !data.datasets?.length) return [];
+              const maxLen = 15;
+              return data.labels.map((label: string, i: number) => {
+                const meta = chart.getDatasetMeta(0);
+                const style = meta.controller.getStyle(i);
+                const displayText =
+                  label.length > maxLen
+                    ? label.substring(0, maxLen - 3) + "..."
+                    : label;
+                return {
+                  text: displayText,
+                  fillStyle: style.backgroundColor,
+                  strokeStyle: style.borderColor,
+                  lineWidth: style.borderWidth,
+                  hidden: !chart.getDataVisibility(i),
+                  index: i,
+                };
+              });
+            },
           },
         },
         tooltip: {
