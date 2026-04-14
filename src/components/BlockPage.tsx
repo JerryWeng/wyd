@@ -217,6 +217,8 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
 
     const clampedTimeLimit = Math.max(1, Number(timeLimitInput) || 1);
 
+    const existingEnabled = editingIndex !== null ? settings.blocks[editingIndex]?.enabled : undefined;
+
     const newRule: BlockRule = {
       domain,
       type: blockType,
@@ -224,6 +226,7 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
       ...(blockType === "scheduled" ? { startTime, endTime } : {}),
       ...(blockType === "daysOfWeek" ? { days } : {}),
       ...(redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
+      ...(existingEnabled === false ? { enabled: false } : {}),
     };
 
     const updatedBlocks =
