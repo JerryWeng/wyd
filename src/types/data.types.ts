@@ -12,6 +12,7 @@ export interface BlockRule {
   endTime?: string;     // "HH:MM" — scheduled
   days?: number[];      // 0–6 (Sun=0) — daysOfWeek
   redirectUrl?: string; // per-rule override; empty = use defaultRedirectUrl or built-in page
+  enabled?: boolean;    // undefined/true = active, false = paused
 }
 
 // settings types

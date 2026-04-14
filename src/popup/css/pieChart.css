@@ -1,20 +1,12 @@
 #chart-section {
   position: relative;
-  margin: 0.75rem 1rem 0.75rem;
+  margin: 0.75rem 1rem 0.5rem;
   background: white;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
 }
 
-#chart-section:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--border-medium);
-}
 
 #chart-container {
   width: 100%;
@@ -60,4 +52,56 @@
   padding: 2rem;
   background: none;
   width: auto;
+}
+
+#date-range-label {
+  position: absolute;
+  top: 0.525rem;
+  right: 0.625rem;
+  font-size: 0.575rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.categories {
+  display: flex;
+  margin: 0;
+  background: white;
+  padding: 0.25rem;
+  border-top: 1px solid var(--border-light);
+  gap: 0.25rem;
+}
+
+.categories button {
+  flex: 1;
+  padding: 0.25rem 0.25rem;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.categories button:hover {
+  color: var(--text-primary);
+  background: var(--btn-color);
+  border-color: var(--border-light);
+  transform: none;
+  box-shadow: none;
+}
+
+.categories button.active {
+  background: var(--btn-color);
+  color: var(--accent-bg);
+  font-weight: 600;
+  border-color: var(--border-medium);
+}
+
+.categories button.active:hover {
+  transform: none;
 }

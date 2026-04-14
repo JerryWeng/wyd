@@ -3,7 +3,6 @@ import { StorageService } from "../utils/storageService";
 import type { AppSettings, BlockRule, BlockType, RawSiteInfo } from "../types/data.types";
 import { DEFAULT_SETTINGS } from "../types/data.types";
 import { isValidDomain, normalizeDomainInput } from "../utils/domainUtils";
-import { usePagination } from "../hooks/usePagination";
 import "../popup/css/settings.css";
 import "../popup/css/blockPage.css";
 
@@ -14,10 +13,24 @@ interface BlockPageProps {
 type BlockPageView = "list" | "form";
 
 const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
-  dailyLimit: "Daily limit",
-  weeklyLimit: "Weekly limit",
+  dailyLimit: "Daily",
+  weeklyLimit: "Weekly",
   scheduled: "Scheduled",
   daysOfWeek: "Days of week",
+};
+
+const BLOCK_TYPE_FORM_LABELS: Record<BlockType, string> = {
+  dailyLimit: "Daily Limit",
+  weeklyLimit: "Weekly Limit",
+  scheduled: "Scheduled",
+  daysOfWeek: "Days of Week",
+};
+
+const BLOCK_TYPE_DESCRIPTIONS: Record<BlockType, string> = {
+  dailyLimit: "Block after X min/day",
+  weeklyLimit: "Block after X min/week",
+  scheduled: "Block during time range",
+  daysOfWeek: "Block on certain days",
 };
 
 const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -115,6 +128,21 @@ const BackIcon = () => (
   </svg>
 );
 
+const GlobeIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ExternalLinkIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    <polyline points="15 3 21 3 21 9" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const PlusIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -138,7 +166,7 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
   const [domainInput, setDomainInput] = useState("");
   const [domainError, setDomainError] = useState<string | null>(null);
   const [blockType, setBlockType] = useState<BlockType>("dailyLimit");
-  const [timeLimit, setTimeLimit] = useState(60);
+  const [timeLimitInput, setTimeLimitInput] = useState("60");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -153,9 +181,6 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     StorageService.getSiteInfo().then(setSiteInfo);
   }, [settings.blocks]);
 
-  const { currentPage, totalPages, currentPageItems, goToNextPage, goToPreviousPage, isFirstPage, isLastPage } =
-    usePagination(settings.blocks, 3);
-
   const saveSettings = async (updated: AppSettings) => {
     setSettings(updated);
     await StorageService.saveSettings(updated);
@@ -166,7 +191,7 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     setEditingIndex(absoluteIndex);
     setDomainInput(rule.domain);
     setBlockType(rule.type);
-    setTimeLimit(rule.timeLimit ?? 60);
+    setTimeLimitInput(String(rule.timeLimit ?? 60));
     setStartTime(rule.startTime ?? "09:00");
     setEndTime(rule.endTime ?? "17:00");
     setDays(rule.days ?? [1, 2, 3, 4, 5]);
@@ -190,13 +215,18 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
       return;
     }
 
+    const clampedTimeLimit = Math.max(1, Number(timeLimitInput) || 1);
+
+    const existingEnabled = editingIndex !== null ? settings.blocks[editingIndex]?.enabled : undefined;
+
     const newRule: BlockRule = {
       domain,
       type: blockType,
-      ...(blockType === "dailyLimit" || blockType === "weeklyLimit" ? { timeLimit } : {}),
+      ...(blockType === "dailyLimit" || blockType === "weeklyLimit" ? { timeLimit: clampedTimeLimit } : {}),
       ...(blockType === "scheduled" ? { startTime, endTime } : {}),
       ...(blockType === "daysOfWeek" ? { days } : {}),
       ...(redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
+      ...(existingEnabled === false ? { enabled: false } : {}),
     };
 
     const updatedBlocks =
@@ -210,6 +240,13 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     setRedirectUrl("");
     setEditingIndex(null);
     setView("list");
+  };
+
+  const toggleRule = async (absoluteIndex: number) => {
+    const updatedBlocks = settings.blocks.map((r, i) =>
+      i === absoluteIndex ? { ...r, enabled: r.enabled === false ? true : false } : r
+    );
+    await saveSettings({ ...settings, blocks: updatedBlocks });
   };
 
   const removeRule = async (absoluteIndex: number) => {
@@ -231,7 +268,7 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     setDomainError(null);
     setRedirectUrl("");
     setBlockType("dailyLimit");
-    setTimeLimit(60);
+    setTimeLimitInput("60");
     setStartTime("09:00");
     setEndTime("17:00");
     setDays([1, 2, 3, 4, 5]);
@@ -241,7 +278,7 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
   // ── Form Subview ──────────────────────────────────────────────────────────
   if (view === "form") {
     return (
-      <div className="settings-container">
+      <div className="bf-container">
         <div className="settings-header">
           <button className="settings-back-btn" onClick={() => { setEditingIndex(null); setView("list"); }}>
             <BackIcon />
@@ -249,94 +286,70 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
           <span className="settings-title">{editingIndex === null ? "Add Block Rule" : "Edit Block Rule"}</span>
         </div>
 
-        <div className="settings-content">
+        <div className="bf-content">
           {/* Domain */}
-          <div className="settings-section">
-            <div className="settings-section-title">Domain</div>
-            <div className="settings-block">
-              <div className="domain-input-row">
-                <input
-                  className="domain-input"
-                  type="text"
-                  placeholder="e.g. youtube.com"
-                  value={domainInput}
-                  onChange={(e) => { setDomainInput(e.target.value); setDomainError(null); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") saveRule(); }}
-                />
-              </div>
-              {domainError && <span className="domain-error">{domainError}</span>}
+          <div className="bf-section">
+            <div className="bf-label">Website Domain</div>
+            <div className="bf-domain-wrap">
+              <GlobeIcon />
+              <input
+                className="bf-input"
+                type="text"
+                placeholder="e.g. youtube.com"
+                value={domainInput}
+                onChange={(e) => { setDomainInput(e.target.value); setDomainError(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") saveRule(); }}
+              />
             </div>
+            {domainError && <span className="domain-error">{domainError}</span>}
           </div>
 
           {/* Block Type */}
-          <div className="settings-section">
-            <div className="settings-section-title">Block Type</div>
-            <div className="settings-block">
-              <div className="block-type-options">
-                {(Object.keys(BLOCK_TYPE_LABELS) as BlockType[]).map((type) => (
-                  <button
-                    key={type}
-                    className={`view-option-btn${blockType === type ? " active" : ""}`}
-                    onClick={() => setBlockType(type)}
-                  >
-                    {BLOCK_TYPE_LABELS[type]}
-                  </button>
-                ))}
-              </div>
+          <div className="bf-section">
+            <div className="bf-label">Block Type</div>
+            <div className="bf-type-grid">
+              {(Object.keys(BLOCK_TYPE_FORM_LABELS) as BlockType[]).map((type) => (
+                <button
+                  key={type}
+                  className={`bf-type-card${blockType === type ? " active" : ""}`}
+                  onClick={() => setBlockType(type)}
+                >
+                  <span className="bf-type-title">{BLOCK_TYPE_FORM_LABELS[type]}</span>
+                  <span className="bf-type-desc">{BLOCK_TYPE_DESCRIPTIONS[type]}</span>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Type-specific inputs */}
+          {/* Time Limit (dailyLimit / weeklyLimit) */}
           {(blockType === "dailyLimit" || blockType === "weeklyLimit") && (
-            <div className="settings-section">
-              <div className="settings-section-title">
-                {blockType === "dailyLimit" ? "Daily" : "Weekly"} Limit (minutes)
+            <div className="bf-section">
+              <div className="bf-label">
+                Time Limit{" "}
+                <span className="bf-label-muted">
+                  ({blockType === "dailyLimit" ? "minutes per day" : "minutes per week"})
+                </span>
               </div>
-              <div className="settings-block">
+              <div className="bf-time-row">
                 <input
-                  className="domain-input"
+                  className="bf-time-input"
                   type="number"
-                  min={1}
-                  value={timeLimit}
-                  onChange={(e) => setTimeLimit(Math.max(1, Number(e.target.value)))}
+                  value={timeLimitInput}
+                  onChange={(e) => setTimeLimitInput(e.target.value)}
+                  onBlur={() => {
+                    const v = Math.max(1, Number(timeLimitInput) || 1);
+                    setTimeLimitInput(String(v));
+                  }}
                 />
-              </div>
-            </div>
-          )}
-
-          {blockType === "scheduled" && (
-            <div className="settings-section">
-              <div className="settings-section-title">Blocked Hours</div>
-              <div className="settings-block">
-                <div className="time-range-row">
-                  <input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                  />
-                  <span className="time-range-sep">to</span>
-                  <input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {blockType === "daysOfWeek" && (
-            <div className="settings-section">
-              <div className="settings-section-title">Blocked Days</div>
-              <div className="settings-block">
-                <div className="day-toggle-row">
-                  {DAY_LABELS.map((label, i) => (
+                <span className="bf-time-unit">minutes</span>
+                <div className="bf-presets">
+                  {[15, 30, 60].map((v) => (
                     <button
-                      key={i}
-                      className={`day-toggle-btn${days.includes(i) ? " active" : ""}`}
-                      onClick={() => toggleDay(i)}
+                      key={v}
+                      className={`bf-preset-btn${Number(timeLimitInput) === v ? " active" : ""}`}
+                      onClick={() => setTimeLimitInput(String(v))}
                     >
-                      {label}
+                      {v}m
                     </button>
                   ))}
                 </div>
@@ -344,35 +357,71 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
             </div>
           )}
 
-          {/* Optional redirect URL */}
-          <div className="settings-section">
-            <div className="settings-section-title">Custom Redirect URL (optional)</div>
-            <div className="settings-block">
-              <input
-                className="domain-input"
-                type="url"
-                placeholder="https://example.com (leave blank for default)"
-                value={redirectUrl}
-                onChange={(e) => setRedirectUrl(e.target.value)}
-              />
+          {/* Scheduled */}
+          {blockType === "scheduled" && (
+            <div className="bf-section">
+              <div className="bf-label">Blocked Hours</div>
+              <div className="time-range-row">
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+                <span className="time-range-sep">to</span>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
             </div>
+          )}
+
+          {/* Days of Week */}
+          {blockType === "daysOfWeek" && (
+            <div className="bf-section">
+              <div className="bf-label">Blocked Days</div>
+              <div className="day-toggle-row">
+                {DAY_LABELS.map((label, i) => (
+                  <button
+                    key={i}
+                    className={`day-toggle-btn${days.includes(i) ? " active" : ""}`}
+                    onClick={() => toggleDay(i)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Redirect URL */}
+          <div className="bf-section">
+            <div className="bf-label bf-label-row">
+              <ExternalLinkIcon />
+              <span>Custom Redirect URL</span>
+              <span className="bf-label-muted">(optional)</span>
+            </div>
+            <input
+              className="bf-input bf-input-mono"
+              type="url"
+              placeholder="https://example.com"
+              value={redirectUrl}
+              onChange={(e) => setRedirectUrl(e.target.value)}
+            />
+            <span className="bf-hint">Where to send users when they visit a blocked site</span>
           </div>
 
-          <div className="settings-section">
-            <div className="settings-block">
-              <button className="domain-add-btn" onClick={saveRule}>
-                Save Rule
-              </button>
-            </div>
-          </div>
+          {/* Save */}
+          <button className="bf-save-btn" onClick={saveRule}>
+            {editingIndex === null ? "Add Block Rule" : "Save Rule"}
+          </button>
         </div>
       </div>
     );
   }
 
   // ── List View ─────────────────────────────────────────────────────────────
-  const pageOffset = (currentPage - 1) * 3;
-
   return (
     <div className="settings-container">
       <div className="settings-header">
@@ -386,78 +435,97 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
       </div>
 
       <div className="settings-content">
-        <div className="settings-section">
-          <div className="settings-block">
-            {settings.blocks.length === 0 ? (
-              <span className="settings-row-desc">No block rules configured yet.</span>
-            ) : (
-              <>
-                <ul className="domain-list">
-                  {currentPageItems.map((rule, pageIdx) => {
-                    const absoluteIndex = pageOffset + pageIdx;
-                    const analytics = computeAnalytics(rule, siteInfo);
-                    return (
-                      <li key={absoluteIndex} className="domain-item">
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.125rem", flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-                            <span className="domain-name" style={{ flex: 1 }}>{rule.domain}</span>
-                            <span className="block-rule-badge">{BLOCK_TYPE_LABELS[rule.type]}</span>
-                            <button className="block-edit-btn" onClick={() => startEdit(absoluteIndex)}>
-                              <EditIcon />
-                            </button>
-                            <button className="domain-remove-btn" onClick={() => removeRule(absoluteIndex)}>✕</button>
-                          </div>
-                          {(rule.type === "dailyLimit" || rule.type === "weeklyLimit") &&
-                            analytics.usedSeconds !== undefined &&
-                            analytics.limitSeconds !== undefined && (
-                              <>
-                                <span className="block-usage-text">
-                                  {formatSeconds(analytics.usedSeconds)} / {formatSeconds(analytics.limitSeconds)}
-                                </span>
-                                <div className="block-progress-bar">
-                                  <div
-                                    className="block-progress-fill"
-                                    style={{
-                                      width: `${analytics.percentUsed ?? 0}%`,
-                                      backgroundColor: getProgressColor(analytics.percentUsed ?? 0),
-                                    }}
-                                  />
-                                </div>
-                              </>
-                            )}
-                          {(rule.type === "scheduled" || rule.type === "daysOfWeek") && (
-                            <span
-                              className={`block-status-badge ${analytics.isActiveNow ? "block-status-active" : "block-status-inactive"}`}
-                            >
-                              {analytics.isActiveNow ? "Active now" : "Inactive"}
-                            </span>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-                {totalPages > 1 && (
-                  <div id="paginationControls" style={{ justifyContent: "center", marginTop: "0.5rem" }}>
-                    <button className="pageControl" onClick={goToPreviousPage} disabled={isFirstPage}>
-                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+        {settings.blocks.length === 0 ? (
+          <span className="settings-row-desc">No block rules configured yet.</span>
+        ) : (() => {
+          const activeRules = settings.blocks.map((r, i) => ({ rule: r, index: i })).filter(({ rule }) => rule.enabled !== false);
+          const pausedRules = settings.blocks.map((r, i) => ({ rule: r, index: i })).filter(({ rule }) => rule.enabled === false);
+
+          const renderCard = (rule: BlockRule, absoluteIndex: number) => {
+            const analytics = computeAnalytics(rule, siteInfo);
+            return (
+              <div key={absoluteIndex} className={`block-rule-card${rule.enabled === false ? " block-rule-card-paused" : ""}`}>
+                <img
+                  src={navigator.onLine
+                    ? `https://www.google.com/s2/favicons?domain=${rule.domain}&sz=32`
+                    : '/icons/default.png'}
+                  alt=""
+                  className="block-rule-favicon"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!navigator.onLine || img.src.endsWith('/icons/default.png')) return;
+                    if (img.src.includes('google.com')) {
+                      img.src = `https://icons.duckduckgo.com/ip3/${rule.domain}.ico`;
+                    } else if (img.src.includes('duckduckgo.com')) {
+                      img.src = `https://${rule.domain}/favicon.ico`;
+                    } else {
+                      img.src = '/icons/default.png';
+                    }
+                  }}
+                />
+                <div className="block-rule-card-content">
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+                    <span className="domain-name">{rule.domain}</span>
+                    <span className="block-rule-badge">{BLOCK_TYPE_LABELS[rule.type]}</span>
+                    <div style={{ flex: 1 }} />
+                    <button
+                      className={`block-rule-toggle${rule.enabled !== false ? " block-rule-toggle-on" : ""}`}
+                      onClick={() => toggleRule(absoluteIndex)}
+                    >
+                      <span className="block-rule-toggle-knob" />
                     </button>
-                    <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                      {currentPage} of {totalPages}
-                    </span>
-                    <button className="pageControl" onClick={goToNextPage} disabled={isLastPage}>
-                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                    <button className="block-edit-btn" onClick={() => startEdit(absoluteIndex)}>
+                      <EditIcon />
                     </button>
+                    <button className="domain-remove-btn" onClick={() => removeRule(absoluteIndex)}>✕</button>
                   </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+                  {(rule.type === "dailyLimit" || rule.type === "weeklyLimit") &&
+                    analytics.usedSeconds !== undefined &&
+                    analytics.limitSeconds !== undefined && (
+                      <>
+                        <span className="block-usage-text">
+                          {formatSeconds(analytics.usedSeconds)} / {formatSeconds(analytics.limitSeconds)}
+                        </span>
+                        <div className="block-progress-bar">
+                          <div
+                            className="block-progress-fill"
+                            style={{
+                              width: `${analytics.percentUsed ?? 0}%`,
+                              backgroundColor: getProgressColor(analytics.percentUsed ?? 0),
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
+                  {(rule.type === "scheduled" || rule.type === "daysOfWeek") && (
+                    <span
+                      className={`block-status-badge ${analytics.isActiveNow ? "block-status-active" : "block-status-inactive"}`}
+                    >
+                      {analytics.isActiveNow ? "Active now" : "Inactive"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <>
+              {activeRules.length > 0 && (
+                <>
+                  <span className="block-section-label">ACTIVE ({activeRules.length})</span>
+                  {activeRules.map(({ rule, index }) => renderCard(rule, index))}
+                </>
+              )}
+              {pausedRules.length > 0 && (
+                <>
+                  <span className="block-section-label">PAUSED ({pausedRules.length})</span>
+                  {pausedRules.map(({ rule, index }) => renderCard(rule, index))}
+                </>
+              )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );
