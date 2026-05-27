@@ -105,3 +105,63 @@
 .categories button.active:hover {
   transform: none;
 }
+
+/* Total button — direct flex child like the other category buttons */
+.total-btn {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.total-chevron {
+  width: 0.6rem;
+  height: 0.6rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* Dropdown rendered in body portal — position: fixed set inline */
+.total-dropdown {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.total-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+}
+
+.dropdown-item-arrow {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.total-dropdown-item:hover {
+  background: var(--btn-color);
+  color: var(--text-primary);
+}
+
+.total-dropdown-item.active {
+  color: var(--accent-bg);
+  font-weight: 600;
+}

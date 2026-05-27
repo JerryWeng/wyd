@@ -1,5 +1,10 @@
 // category type
 export type Category = "today" | "1W" | "1M" | "1Y" | "total";
+export type UICategory = Category | "dateRange";
+export interface DateRangeSelection {
+  start: string; // "YYYY-MM-DD"
+  end: string;   // "YYYY-MM-DD"
+}
 
 // block rule types
 export type BlockType = "dailyLimit" | "weeklyLimit" | "scheduled" | "daysOfWeek";

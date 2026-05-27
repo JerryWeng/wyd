@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { StorageService } from "../utils/storageService";
 import { DataProcessor } from "../utils/dataProcessor";
-import type { ProcessedSiteInfo, Category } from "../types/data.types";
+import type { ProcessedSiteInfo, Category, UICategory, DateRangeSelection } from "../types/data.types";
 
 export const usePopupController = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -11,7 +11,8 @@ export const usePopupController = () => {
   const [currentView, setCurrentView] = useState<PopupView>("main");
   const [refreshTick, setRefreshTick] = useState(0);
 
-  const [currentCategory, setCurrentCategory] = useState<Category>("today");
+  const [currentUICategory, setCurrentUICategory] = useState<UICategory>("today");
+  const [dateRange, setDateRange] = useState<DateRangeSelection | null>(null);
   const [filterBy, setFilterBy] = useState<"time" | "session" | "domain">("time");
   const [sortOrder, setSortOrder] = useState<"ascending" | "descending">(
     "descending",
@@ -20,7 +21,7 @@ export const usePopupController = () => {
   // Load default view from settings on mount
   useEffect(() => {
     StorageService.getSettings().then((s) => {
-      setCurrentCategory(s.defaultView);
+      setCurrentUICategory(s.defaultView);
     });
   }, []);
 
@@ -42,14 +43,16 @@ export const usePopupController = () => {
 
         // Process data based on the current category
         let combinedData: ProcessedSiteInfo;
-        if (currentCategory === "today") {
+        if (currentUICategory === "today") {
           combinedData = DataProcessor.processTodayData(siteInfo);
-        } else if (currentCategory === "1W") {
+        } else if (currentUICategory === "1W") {
           combinedData = DataProcessor.processWeekData(siteInfo);
-        } else if (currentCategory === "1M") {
+        } else if (currentUICategory === "1M") {
           combinedData = DataProcessor.processMonthData(siteInfo);
-        } else if (currentCategory === "1Y") {
+        } else if (currentUICategory === "1Y") {
           combinedData = DataProcessor.processYearData(siteInfo);
+        } else if (currentUICategory === "dateRange" && dateRange) {
+          combinedData = DataProcessor.processCustomDateRange(siteInfo, dateRange.start, dateRange.end);
         } else {
           combinedData = DataProcessor.processTotalData(siteInfo);
         }
@@ -63,14 +66,24 @@ export const usePopupController = () => {
     };
 
     loadAndDisplayData();
-  }, [currentCategory, refreshTick]);
+  }, [currentUICategory, dateRange, refreshTick]);
 
   const sortedSites = useMemo(() => {
     return DataProcessor.sortData(allData, filterBy, sortOrder);
   }, [allData, filterBy, sortOrder]);
 
   const handleCategorySwitch = (category: Category) => {
-    setCurrentCategory(category);
+    setCurrentUICategory(category);
+    setDateRange(null);
+  };
+
+  const switchToDateRange = () => {
+    setCurrentUICategory("dateRange");
+  };
+
+  const handleDateRangeSelect = (start: string, end: string) => {
+    setDateRange({ start, end });
+    setCurrentUICategory("dateRange");
   };
 
   const handleSortSelect = (type: "time" | "session" | "domain") => {
@@ -85,10 +98,11 @@ export const usePopupController = () => {
   const openBlockPage = () => setCurrentView("block");
   const closeView = async () => {
     const s = await StorageService.getSettings();
-    if (s.defaultView !== currentCategory) {
-      setCurrentCategory(s.defaultView); // triggers the data effect with the new category
+    if (s.defaultView !== currentUICategory || currentUICategory === "dateRange") {
+      setCurrentUICategory(s.defaultView);
+      setDateRange(null);
     } else {
-      setRefreshTick((prev) => prev + 1); // forces re-fetch without changing category
+      setRefreshTick((prev) => prev + 1);
     }
     setCurrentView("main");
   };
@@ -97,11 +111,14 @@ export const usePopupController = () => {
     isLoading,
     error,
     sortedSites,
-    currentCategory,
+    currentUICategory,
+    dateRange,
     filterBy,
     sortOrder,
     currentView,
     handleCategorySwitch,
+    switchToDateRange,
+    handleDateRangeSelect,
     handleSortSelect,
     openSettings,
     openBlockPage,

@@ -1,4 +1,4 @@
-import type { Category } from "../types/data.types";
+import type { UICategory, DateRangeSelection } from "../types/data.types";
 
 export class TimeFormatter {
   static formatTimeDisplay(seconds: number) {
@@ -19,7 +19,7 @@ export class TimeFormatter {
     return timeDisplay;
   }
 
-  static getDateRangeLabel(category: Category) {
+  static getDateRangeLabel(category: UICategory, dateRange?: DateRangeSelection | null): string {
     if (category === "today") {
       return "Today";
     } else if (category === "1W") {
@@ -30,7 +30,19 @@ export class TimeFormatter {
       return "Past Year";
     } else if (category === "total") {
       return "All Time";
+    } else if (category === "dateRange" && dateRange) {
+      const fmt = (dateStr: string) => {
+        const [year, month, day] = dateStr.split("-").map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+      };
+      return dateRange.start === dateRange.end
+        ? fmt(dateRange.start)
+        : `${fmt(dateRange.start)} – ${fmt(dateRange.end)}`;
     }
+    return "";
   }
 
   static getLocalDateString() {

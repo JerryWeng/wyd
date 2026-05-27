@@ -109,6 +109,40 @@ export class DataProcessor {
     return combinedData;
   }
 
+  static processCustomDateRange(
+    siteInfo: RawSiteInfo,
+    startDate: string,
+    endDate: string
+  ): ProcessedSiteInfo {
+    let totalTimeData: Record<string, number> = {};
+    let totalSessionData: Record<string, number> = {};
+
+    Object.entries(siteInfo).forEach(([dateStr, dayData]) => {
+      if (dateStr >= startDate && dateStr <= endDate) {
+        if (dayData.time) {
+          Object.entries(dayData.time).forEach(([domain, seconds]) => {
+            totalTimeData[domain] = (totalTimeData[domain] || 0) + seconds;
+          });
+        }
+        if (dayData.sessions) {
+          Object.entries(dayData.sessions).forEach(([domain, sessions]) => {
+            totalSessionData[domain] = (totalSessionData[domain] || 0) + sessions;
+          });
+        }
+      }
+    });
+
+    const combinedData: ProcessedSiteInfo = {};
+    Object.entries(totalTimeData).forEach(([domain, seconds]) => {
+      combinedData[domain] = { time: seconds, sessions: totalSessionData[domain] || 0 };
+    });
+    Object.entries(totalSessionData).forEach(([domain, sessions]) => {
+      if (!combinedData[domain]) combinedData[domain] = { time: 0, sessions };
+    });
+
+    return combinedData;
+  }
+
   static processWeekData(siteInfo: RawSiteInfo): ProcessedSiteInfo {
     return this.processDateRangeData(siteInfo, 7);
   }
