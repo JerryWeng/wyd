@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { StorageService } from "../utils/storageService";
 import type { AppSettings, Category } from "../types/data.types";
 import { DEFAULT_SETTINGS } from "../types/data.types";
@@ -54,6 +54,10 @@ const Settings = ({ onClose }: SettingsProps) => {
   >("today");
   const [exportLoading, setExportLoading] = useState(false);
   const [clearFeedback, setClearFeedback] = useState<string | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importFeedback, setImportFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     StorageService.getSettings().then(setSettings);
@@ -105,6 +109,32 @@ const Settings = ({ onClose }: SettingsProps) => {
     }
     setConfirmClear(null);
     setTimeout(() => setClearFeedback(null), 3000);
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPendingImportFile(file);
+      setImportFeedback(null);
+    }
+    e.target.value = "";
+  };
+
+  const handleImport = async (mode: "merge" | "replace") => {
+    if (!pendingImportFile) return;
+    setImportLoading(true);
+    setImportFeedback(null);
+    try {
+      await StorageService.importData(pendingImportFile, mode);
+      const label = mode === "merge" ? "merged into" : "replaced";
+      setImportFeedback({ type: "success", msg: `Data ${label} successfully.` });
+      setPendingImportFile(null);
+    } catch (err) {
+      setImportFeedback({ type: "error", msg: err instanceof Error ? err.message : "Import failed." });
+    } finally {
+      setImportLoading(false);
+      setTimeout(() => setImportFeedback(null), 4000);
+    }
   };
 
   const handleExport = async (format: "json" | "csv") => {
@@ -427,6 +457,62 @@ const Settings = ({ onClose }: SettingsProps) => {
                 Export CSV
               </button>
             </div>
+          </div>
+
+          {/* Import Data */}
+          <div className="settings-block">
+            <span className="settings-row-label">Import Data</span>
+            <span className="settings-row-desc">
+              Restore from a previously exported file (.json or .csv)
+            </span>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".json,.csv"
+              style={{ display: "none" }}
+              onChange={handleFileSelected}
+            />
+            {pendingImportFile ? (
+              <div className="import-confirm-row">
+                <span className="import-filename">{pendingImportFile.name}</span>
+                <div className="import-mode-buttons">
+                  <button
+                    className="btn-outline-sm"
+                    onClick={() => handleImport("merge")}
+                    disabled={importLoading}
+                  >
+                    Merge
+                  </button>
+                  <button
+                    className="btn-outline-sm btn-outline-danger"
+                    onClick={() => handleImport("replace")}
+                    disabled={importLoading}
+                  >
+                    Replace
+                  </button>
+                  <button
+                    className="btn-cancel-sm"
+                    onClick={() => { setPendingImportFile(null); setImportFeedback(null); }}
+                    disabled={importLoading}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="btn-outline-sm import-trigger-btn"
+                onClick={() => importFileRef.current?.click()}
+                disabled={importLoading}
+              >
+                Import Data
+              </button>
+            )}
+            {importFeedback && (
+              <span className={`import-feedback import-feedback--${importFeedback.type}`}>
+                {importFeedback.msg}
+              </span>
+            )}
           </div>
         </div>
       </div>
