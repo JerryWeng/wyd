@@ -92,23 +92,25 @@ const DateRangeCalendar = ({ onConfirm, onCancel, initialRange }: DateRangeCalen
 
   const getDayClasses = (dateStr: string): string => {
     const classes = ['cal-day'];
+    const isPreview = (isDragging || awaitingEnd) && hoverDate !== null;
     const [rangeStart, rangeEnd] = getEffectiveRange();
+    const prefix = isPreview ? 'cal-preview' : 'cal-range';
 
     if (dateStr > todayStr) classes.push('cal-disabled');
     if (dateStr === todayStr) classes.push('cal-today');
 
     if (rangeStart && rangeEnd) {
       if (dateStr === rangeStart && dateStr === rangeEnd) {
-        classes.push('cal-range-start', 'cal-range-end');
+        classes.push(`${prefix}-start`, `${prefix}-end`);
       } else if (dateStr === rangeStart) {
-        classes.push('cal-range-start');
+        classes.push(`${prefix}-start`);
       } else if (dateStr === rangeEnd) {
-        classes.push('cal-range-end');
+        classes.push(`${prefix}-end`);
       } else if (dateStr > rangeStart && dateStr < rangeEnd) {
-        classes.push('cal-in-range');
+        classes.push(isPreview ? 'cal-preview-in-range' : 'cal-in-range');
       }
     } else if (rangeStart && !rangeEnd && dateStr === rangeStart) {
-      classes.push('cal-range-start', 'cal-range-end');
+      classes.push(`${prefix}-start`, `${prefix}-end`);
     }
 
     return classes.join(' ');
@@ -174,7 +176,7 @@ const DateRangeCalendar = ({ onConfirm, onCancel, initialRange }: DateRangeCalen
           </button>
         </div>
 
-        {awaitingEnd && <span className="cal-hint">Select end date</span>}
+        <span className={`cal-hint${awaitingEnd ? '' : ' cal-hint--hidden'}`}>Select end date</span>
 
         <div className="cal-dow">
           {DAYS_OF_WEEK.map(d => <div key={d} className="cal-dow-cell">{d}</div>)}

@@ -61,12 +61,18 @@
 }
 
 .cal-hint {
+  display: block;
   font-size: 0.55rem;
   color: var(--accent-bg);
   text-align: center;
   margin-top: -0.3rem;
   margin-bottom: 0.25rem;
   letter-spacing: 0.01em;
+  transition: opacity 0.15s;
+}
+
+.cal-hint--hidden {
+  visibility: hidden;
 }
 
 .cal-dow {
@@ -104,8 +110,8 @@
 }
 
 .cal-day:hover:not(.cal-disabled):not(.cal-empty) {
-  background: var(--accent-light);
-  color: var(--accent-bg);
+  outline: 1.5px dashed var(--accent-bg);
+  outline-offset: -1.5px;
 }
 
 .cal-day.cal-today {
@@ -156,6 +162,34 @@
   background: var(--accent-light);
   color: var(--accent-bg);
   border-radius: 0;
+}
+
+/* Preview (hover) range — lighter than committed to show it's not final */
+.cal-day.cal-preview-start {
+  background: var(--accent-light);
+  color: var(--accent-bg);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  outline: 1.5px dashed var(--accent-bg);
+  outline-offset: -1.5px;
+}
+
+.cal-day.cal-preview-end {
+  background: var(--accent-light);
+  color: var(--accent-bg);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  outline: 1.5px dashed var(--accent-bg);
+  outline-offset: -1.5px;
+}
+
+.cal-day.cal-preview-start.cal-preview-end {
+  border-radius: var(--radius-sm);
+}
+
+.cal-day.cal-preview-in-range {
+  background: var(--accent-light);
+  color: var(--accent-bg);
+  border-radius: 0;
+  opacity: 0.6;
 }
 
 .cal-day.cal-disabled {
