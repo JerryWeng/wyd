@@ -92,6 +92,12 @@ function computeAnalytics(rule: BlockRule, siteInfo: RawSiteInfo): RuleAnalytics
     const usedSeconds = getSecondsForDomain(domain, siteInfo[today]?.time);
     const limitSeconds = (rule.timeLimit ?? 60) * 60;
     const percentUsed = limitSeconds > 0 ? Math.min(100, (usedSeconds / limitSeconds) * 100) : 0;
+    if (rule.deadlineTime) {
+      const now = new Date();
+      const [dH, dM] = rule.deadlineTime.split(":").map(Number);
+      const isActiveNow = now.getHours() * 60 + now.getMinutes() < dH * 60 + dM;
+      return { percentUsed, usedSeconds, limitSeconds, isActiveNow };
+    }
     return { percentUsed, usedSeconds, limitSeconds };
   }
   if (type === "weeklyLimit") {
@@ -108,6 +114,13 @@ function computeAnalytics(rule: BlockRule, siteInfo: RawSiteInfo): RuleAnalytics
     return { isActiveNow: (rule.days ?? []).includes(new Date().getDay()) };
   }
   return {};
+}
+
+function isDeadlinePassed(rule: BlockRule): boolean {
+  if (rule.type !== "dailyLimit" || !rule.deadlineTime) return false;
+  const now = new Date();
+  const [dH, dM] = rule.deadlineTime.split(":").map(Number);
+  return now.getHours() * 60 + now.getMinutes() >= dH * 60 + dM;
 }
 
 function formatSeconds(seconds: number): string {
@@ -170,6 +183,8 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [deadlineEnabled, setDeadlineEnabled] = useState(false);
+  const [deadlineTime, setDeadlineTime] = useState("15:00");
   const [redirectUrl, setRedirectUrl] = useState("");
 
   useEffect(() => {
@@ -195,6 +210,8 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     setStartTime(rule.startTime ?? "09:00");
     setEndTime(rule.endTime ?? "17:00");
     setDays(rule.days ?? [1, 2, 3, 4, 5]);
+    setDeadlineEnabled(!!rule.deadlineTime);
+    setDeadlineTime(rule.deadlineTime ?? "15:00");
     setRedirectUrl(rule.redirectUrl ?? "");
     setDomainError(null);
     setView("form");
@@ -225,6 +242,7 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
       ...(blockType === "dailyLimit" || blockType === "weeklyLimit" ? { timeLimit: clampedTimeLimit } : {}),
       ...(blockType === "scheduled" ? { startTime, endTime } : {}),
       ...(blockType === "daysOfWeek" ? { days } : {}),
+      ...(blockType === "dailyLimit" && deadlineEnabled ? { deadlineTime } : {}),
       ...(redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
       ...(existingEnabled === false ? { enabled: false } : {}),
     };
@@ -272,6 +290,8 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
     setStartTime("09:00");
     setEndTime("17:00");
     setDays([1, 2, 3, 4, 5]);
+    setDeadlineEnabled(false);
+    setDeadlineTime("15:00");
     setView("form");
   };
 
@@ -288,128 +308,163 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
 
         <div className="bf-content">
           {/* Domain */}
-          <div className="bf-section">
-            <div className="bf-label">Website Domain</div>
-            <div className="bf-domain-wrap">
-              <GlobeIcon />
-              <input
-                className="bf-input"
-                type="text"
-                placeholder="e.g. youtube.com"
-                value={domainInput}
-                onChange={(e) => { setDomainInput(e.target.value); setDomainError(null); }}
-                onKeyDown={(e) => { if (e.key === "Enter") saveRule(); }}
-              />
+          <div className="bf-card">
+            <div className="bf-section">
+              <div className="bf-label">Website Domain</div>
+              <div className="bf-domain-wrap">
+                <GlobeIcon />
+                <input
+                  className="bf-input"
+                  type="text"
+                  placeholder="e.g. youtube.com"
+                  value={domainInput}
+                  onChange={(e) => { setDomainInput(e.target.value); setDomainError(null); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveRule(); }}
+                />
+              </div>
+              {domainError && <span className="domain-error">{domainError}</span>}
             </div>
-            {domainError && <span className="domain-error">{domainError}</span>}
           </div>
 
           {/* Block Type */}
-          <div className="bf-section">
-            <div className="bf-label">Block Type</div>
-            <div className="bf-type-grid">
-              {(Object.keys(BLOCK_TYPE_FORM_LABELS) as BlockType[]).map((type) => (
-                <button
-                  key={type}
-                  className={`bf-type-card${blockType === type ? " active" : ""}`}
-                  onClick={() => setBlockType(type)}
-                >
-                  <span className="bf-type-title">{BLOCK_TYPE_FORM_LABELS[type]}</span>
-                  <span className="bf-type-desc">{BLOCK_TYPE_DESCRIPTIONS[type]}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Time Limit (dailyLimit / weeklyLimit) */}
-          {(blockType === "dailyLimit" || blockType === "weeklyLimit") && (
+          <div className="bf-card">
             <div className="bf-section">
-              <div className="bf-label">
-                Time Limit{" "}
-                <span className="bf-label-muted">
-                  ({blockType === "dailyLimit" ? "minutes per day" : "minutes per week"})
-                </span>
-              </div>
-              <div className="bf-time-row">
-                <input
-                  className="bf-time-input"
-                  type="number"
-                  value={timeLimitInput}
-                  onChange={(e) => setTimeLimitInput(e.target.value)}
-                  onBlur={() => {
-                    const v = Math.max(1, Number(timeLimitInput) || 1);
-                    setTimeLimitInput(String(v));
-                  }}
-                />
-                <span className="bf-time-unit">minutes</span>
-                <div className="bf-presets">
-                  {[15, 30, 60].map((v) => (
-                    <button
-                      key={v}
-                      className={`bf-preset-btn${Number(timeLimitInput) === v ? " active" : ""}`}
-                      onClick={() => setTimeLimitInput(String(v))}
-                    >
-                      {v}m
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Scheduled */}
-          {blockType === "scheduled" && (
-            <div className="bf-section">
-              <div className="bf-label">Blocked Hours</div>
-              <div className="time-range-row">
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
-                <span className="time-range-sep">to</span>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Days of Week */}
-          {blockType === "daysOfWeek" && (
-            <div className="bf-section">
-              <div className="bf-label">Blocked Days</div>
-              <div className="day-toggle-row">
-                {DAY_LABELS.map((label, i) => (
+              <div className="bf-label">Block Type</div>
+              <div className="bf-type-grid">
+                {(Object.keys(BLOCK_TYPE_FORM_LABELS) as BlockType[]).map((type) => (
                   <button
-                    key={i}
-                    className={`day-toggle-btn${days.includes(i) ? " active" : ""}`}
-                    onClick={() => toggleDay(i)}
+                    key={type}
+                    className={`bf-type-card${blockType === type ? " active" : ""}`}
+                    onClick={() => setBlockType(type)}
                   >
-                    {label}
+                    <span className="bf-type-title">{BLOCK_TYPE_FORM_LABELS[type]}</span>
+                    <span className="bf-type-desc">{BLOCK_TYPE_DESCRIPTIONS[type]}</span>
                   </button>
                 ))}
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Rules block */}
+          <div className="bf-rules-block">
+            <div className="bf-rules-heading">Rules</div>
+
+            {/* Time Limit (dailyLimit / weeklyLimit) */}
+            {(blockType === "dailyLimit" || blockType === "weeklyLimit") && (
+              <div className="bf-section">
+                <div className="bf-label">
+                  Time Limit{" "}
+                  <span className="bf-label-muted">
+                    ({blockType === "dailyLimit" ? "minutes per day" : "minutes per week"})
+                  </span>
+                </div>
+                <div className="bf-time-row">
+                  <input
+                    className="bf-time-input"
+                    type="number"
+                    value={timeLimitInput}
+                    onChange={(e) => setTimeLimitInput(e.target.value)}
+                    onBlur={() => {
+                      const v = Math.max(1, Number(timeLimitInput) || 1);
+                      setTimeLimitInput(String(v));
+                    }}
+                  />
+                  <span className="bf-time-unit">minutes</span>
+                  <div className="bf-presets">
+                    {[15, 30, 60].map((v) => (
+                      <button
+                        key={v}
+                        className={`bf-preset-btn${Number(timeLimitInput) === v ? " active" : ""}`}
+                        onClick={() => setTimeLimitInput(String(v))}
+                      >
+                        {v}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Deadline toggle (dailyLimit only) */}
+            {blockType === "dailyLimit" && (
+              <div className="bf-section">
+                <button
+                  className="bf-deadline-toggle"
+                  onClick={() => setDeadlineEnabled((v) => !v)}
+                >
+                  <span className="bf-deadline-toggle-label">Limit active until a certain time</span>
+                  <span className={`bf-deadline-pill${deadlineEnabled ? " active" : ""}`}>
+                    <span className="bf-deadline-knob" />
+                  </span>
+                </button>
+                {deadlineEnabled && (
+                  <div className="time-range-row">
+                    <input
+                      type="time"
+                      value={deadlineTime}
+                      onChange={(e) => setDeadlineTime(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Scheduled */}
+            {blockType === "scheduled" && (
+              <div className="bf-section">
+                <div className="bf-label">Blocked Hours</div>
+                <div className="time-range-row">
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                  <span className="time-range-sep">to</span>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Days of Week */}
+            {blockType === "daysOfWeek" && (
+              <div className="bf-section">
+                <div className="bf-label">Blocked Days</div>
+                <div className="day-toggle-row">
+                  {DAY_LABELS.map((label, i) => (
+                    <button
+                      key={i}
+                      className={`day-toggle-btn${days.includes(i) ? " active" : ""}`}
+                      onClick={() => toggleDay(i)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Redirect URL */}
-          <div className="bf-section">
-            <div className="bf-label bf-label-row">
-              <ExternalLinkIcon />
-              <span>Custom Redirect URL</span>
-              <span className="bf-label-muted">(optional)</span>
+          <div className="bf-card">
+            <div className="bf-section">
+              <div className="bf-label bf-label-row">
+                <ExternalLinkIcon />
+                <span>Custom Redirect URL</span>
+                <span className="bf-label-muted">(optional)</span>
+              </div>
+              <input
+                className="bf-input bf-input-mono"
+                type="url"
+                placeholder="https://example.com"
+                value={redirectUrl}
+                onChange={(e) => setRedirectUrl(e.target.value)}
+              />
+              <span className="bf-hint">Where to send users when they visit a blocked site</span>
             </div>
-            <input
-              className="bf-input bf-input-mono"
-              type="url"
-              placeholder="https://example.com"
-              value={redirectUrl}
-              onChange={(e) => setRedirectUrl(e.target.value)}
-            />
-            <span className="bf-hint">Where to send users when they visit a blocked site</span>
           </div>
 
           {/* Save */}
@@ -438,13 +493,13 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
         {settings.blocks.length === 0 ? (
           <span className="settings-row-desc">No block rules configured yet.</span>
         ) : (() => {
-          const activeRules = settings.blocks.map((r, i) => ({ rule: r, index: i })).filter(({ rule }) => rule.enabled !== false);
-          const pausedRules = settings.blocks.map((r, i) => ({ rule: r, index: i })).filter(({ rule }) => rule.enabled === false);
+          const activeRules = settings.blocks.map((r, i) => ({ rule: r, index: i })).filter(({ rule }) => rule.enabled !== false && !isDeadlinePassed(rule));
+          const pausedRules = settings.blocks.map((r, i) => ({ rule: r, index: i })).filter(({ rule }) => rule.enabled === false || isDeadlinePassed(rule));
 
           const renderCard = (rule: BlockRule, absoluteIndex: number) => {
             const analytics = computeAnalytics(rule, siteInfo);
             return (
-              <div key={absoluteIndex} className={`block-rule-card${rule.enabled === false ? " block-rule-card-paused" : ""}`}>
+              <div key={absoluteIndex} className={`block-rule-card${rule.enabled === false || isDeadlinePassed(rule) ? " block-rule-card-paused" : ""}`}>
                 <img
                   src={navigator.onLine
                     ? `https://www.google.com/s2/favicons?domain=${rule.domain}&sz=32`
@@ -483,9 +538,20 @@ const BlockPage = ({ onClose }: BlockPageProps) => {
                     analytics.usedSeconds !== undefined &&
                     analytics.limitSeconds !== undefined && (
                       <>
-                        <span className="block-usage-text">
-                          {formatSeconds(analytics.usedSeconds)} / {formatSeconds(analytics.limitSeconds)}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+                          <span className="block-usage-text">
+                            {formatSeconds(analytics.usedSeconds)} / {formatSeconds(analytics.limitSeconds)}
+                          </span>
+                          {rule.type === "dailyLimit" && rule.deadlineTime && (
+                            <span className={`block-status-badge ${analytics.isActiveNow ? "block-status-active" : "block-status-inactive"}`}>
+                              {analytics.isActiveNow ? `Before ${rule.deadlineTime}` : "Limit off"}
+                            </span>
+                          )}
+                          <div style={{ flex: 1 }} />
+                          {(analytics.percentUsed ?? 0) >= 100 && (
+                            <span className="block-status-badge block-status-active">Exceeded</span>
+                          )}
+                        </div>
                         <div className="block-progress-bar">
                           <div
                             className="block-progress-fill"

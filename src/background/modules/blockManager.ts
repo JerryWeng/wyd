@@ -94,6 +94,11 @@ export class BlockManager {
     inFlightSeconds: number
   ): Promise<boolean> {
     if (!rule.timeLimit) return false;
+    if (rule.deadlineTime) {
+      const now = new Date();
+      const [dH, dM] = rule.deadlineTime.split(":").map(Number);
+      if (now.getHours() * 60 + now.getMinutes() >= dH * 60 + dM) return false;
+    }
     const today = this.storageManager.getLocalDateString();
     const storedSeconds = await this.storageManager.getTotalDomainTime(domain, today);
     return storedSeconds + inFlightSeconds >= rule.timeLimit * 60;
@@ -131,6 +136,7 @@ export class BlockManager {
     if (!rule.days || rule.days.length === 0) return false;
     return rule.days.includes(new Date().getDay());
   }
+
 }
 
 export default BlockManager;

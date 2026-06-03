@@ -42,3 +42,21 @@ p {
   font-size: 0.875rem;
   color: #6b7280;
 }
+
+.redirect-retry-btn {
+  margin-top: 1.5rem;
+  padding: 0.625rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: inherit;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.redirect-retry-btn:hover {
+  background: #4338ca;
+}

@@ -12,12 +12,13 @@ export type BlockType = "dailyLimit" | "weeklyLimit" | "scheduled" | "daysOfWeek
 export interface BlockRule {
   domain: string;
   type: BlockType;
-  timeLimit?: number;   // minutes — dailyLimit / weeklyLimit
-  startTime?: string;   // "HH:MM" — scheduled
-  endTime?: string;     // "HH:MM" — scheduled
-  days?: number[];      // 0–6 (Sun=0) — daysOfWeek
-  redirectUrl?: string; // per-rule override; empty = use defaultRedirectUrl or built-in page
-  enabled?: boolean;    // undefined/true = active, false = paused
+  timeLimit?: number;    // minutes — dailyLimit / weeklyLimit / dailyLimitBefore
+  startTime?: string;    // "HH:MM" — scheduled
+  endTime?: string;      // "HH:MM" — scheduled
+  days?: number[];       // 0–6 (Sun=0) — daysOfWeek
+  deadlineTime?: string; // "HH:MM" — dailyLimitBefore (rule inactive after this time)
+  redirectUrl?: string;  // per-rule override; empty = use defaultRedirectUrl or built-in page
+  enabled?: boolean;     // undefined/true = active, false = paused
 }
 
 // settings types

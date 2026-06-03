@@ -98,7 +98,7 @@ export const usePopupController = () => {
   const openBlockPage = () => setCurrentView("block");
   const closeView = async () => {
     const s = await StorageService.getSettings();
-    if (s.defaultView !== currentUICategory || currentUICategory === "dateRange") {
+    if (currentUICategory === "dateRange" || s.defaultView !== currentUICategory) {
       setCurrentUICategory(s.defaultView);
       setDateRange(null);
     } else {
