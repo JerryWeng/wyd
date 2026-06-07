@@ -40,6 +40,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultRedirectUrl: "",
 };
 
+// auth / user types
+export interface UserRecord {
+  id: string;
+  email: string;
+  plan: "free" | "pro";
+  subscription_status: "active" | "canceled" | "past_due" | null;
+  cloud_sync_enabled: boolean;
+}
+
 // raw data types
 type DomainData = Record<string, number>; // domain name to either time(seconds) or sessions
 interface MultipleDomainStats {

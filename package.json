@@ -12,6 +12,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.107.0",
     "@tailwindcss/vite": "^4.1.11",
     "chart.js": "^4.5.0",
     "react": "^19.1.0",

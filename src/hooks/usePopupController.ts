@@ -1,14 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
 import { StorageService } from "../utils/storageService";
 import { DataProcessor } from "../utils/dataProcessor";
-import type { ProcessedSiteInfo, Category, UICategory, DateRangeSelection } from "../types/data.types";
+import { authService } from "../utils/authService";
+import type { Session } from "@supabase/supabase-js";
+import type { ProcessedSiteInfo, Category, UICategory, DateRangeSelection, UserRecord } from "../types/data.types";
 
 export const usePopupController = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allData, setAllData] = useState<ProcessedSiteInfo>({});
-  type PopupView = "main" | "settings" | "block";
+  type PopupView = "main" | "settings" | "block" | "auth" | "account";
   const [currentView, setCurrentView] = useState<PopupView>("main");
+  const [session, setSession] = useState<Session | null>(null);
+  const [userRecord, setUserRecord] = useState<UserRecord | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
 
   const [currentUICategory, setCurrentUICategory] = useState<UICategory>("today");
@@ -23,6 +27,21 @@ export const usePopupController = () => {
     StorageService.getSettings().then((s) => {
       setCurrentUICategory(s.defaultView);
     });
+  }, []);
+
+  // Restore auth session on mount and subscribe to changes
+  useEffect(() => {
+    authService.getSession().then(({ data }) => setSession(data.session));
+    StorageService.getUserRecord().then((r) => setUserRecord(r));
+
+    const { data: { subscription } } = authService.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      if (!newSession) {
+        setUserRecord(null);
+        StorageService.clearUserRecord();
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   // Establish a single persistent port for the popup lifetime.
@@ -96,6 +115,24 @@ export const usePopupController = () => {
 
   const openSettings = () => setCurrentView("settings");
   const openBlockPage = () => setCurrentView("block");
+  const openAuth = () => setCurrentView("auth");
+  const openAccount = () => setCurrentView("account");
+
+  const handleAuthSuccess = async (newSession: Session) => {
+    setSession(newSession);
+    const record = await authService.fetchUserRecord(newSession.user.id);
+    if (record) {
+      setUserRecord(record);
+      await StorageService.saveUserRecord(record);
+    }
+    setCurrentView("main");
+  };
+
+  const handleSignOut = async () => {
+    await authService.signOut();
+    setCurrentView("main");
+  };
+
   const closeView = async () => {
     const s = await StorageService.getSettings();
     if (currentUICategory === "dateRange" || s.defaultView !== currentUICategory) {
@@ -116,12 +153,18 @@ export const usePopupController = () => {
     filterBy,
     sortOrder,
     currentView,
+    session,
+    userRecord,
     handleCategorySwitch,
     switchToDateRange,
     handleDateRangeSelect,
     handleSortSelect,
     openSettings,
     openBlockPage,
+    openAuth,
+    openAccount,
+    handleAuthSuccess,
+    handleSignOut,
     closeView,
     allData,
   };

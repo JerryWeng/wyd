@@ -14,6 +14,9 @@ import { usePagination } from '../hooks/usePagination';
 import PieChart from '../components/PieChart';
 import Settings from '../components/Settings';
 import BlockPage from '../components/BlockPage';
+import AuthPanel from '../components/AuthPanel';
+import AccountPanel from '../components/AccountPanel';
+import './css/auth.css';
 import TotalDropdown from '../components/TotalDropdown';
 import DateRangeCalendar from '../components/DateRangeCalendar';
 import { TimeFormatter } from '../utils/timeFormatter';
@@ -29,12 +32,18 @@ const Popup = () => {
         filterBy,
         sortOrder,
         currentView,
+        session,
+        userRecord,
         handleCategorySwitch,
         switchToDateRange,
         handleDateRangeSelect,
         handleSortSelect,
         openSettings,
         openBlockPage,
+        openAuth,
+        openAccount,
+        handleAuthSuccess,
+        handleSignOut,
         closeView,
         allData
     } = usePopupController();
@@ -87,6 +96,8 @@ const Popup = () => {
         <div className="container">
             {currentView === 'settings' && <Settings onClose={closeView} />}
             {currentView === 'block' && <BlockPage onClose={closeView} />}
+            {currentView === 'auth' && <AuthPanel onSuccess={handleAuthSuccess} onClose={closeView} />}
+            {currentView === 'account' && <AccountPanel userRecord={userRecord} onSignOut={handleSignOut} onClose={closeView} />}
             {isCalendarOpen && (
                 <DateRangeCalendar
                     onConfirm={(start, end) => {
@@ -105,6 +116,16 @@ const Popup = () => {
                         <div className="logoName">WhatAreYouDoing</div>
                     </div>
                     <div className="options">
+                        <button
+                            className={`account-btn${session ? ' signed-in' : ''}`}
+                            onClick={session ? openAccount : openAuth}
+                            title={session ? 'Account' : 'Sign in'}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" />
+                                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                        </button>
                         <button id="donateBtn" onClick={() => window.open('https://ko-fi.com/jerryweng', '_blank')}>
                             <svg viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M9.81 2.5C11.79 2.5 13.13 4.36 13.13 6.1C13.13 9.62 7.6 12.5 7.5 12.5C7.4 12.5 1.88 9.62 1.88 6.1C1.88 4.36 3.21 2.5 5.19 2.5C6.33 2.5 7.07 3.07 7.5 3.57C7.93 3.07 8.68 2.5 9.81 2.5Z" stroke="#f87171" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />

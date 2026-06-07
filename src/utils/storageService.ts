@@ -1,4 +1,4 @@
-import type { AppSettings, Category, RawSiteInfo } from "../types/data.types";
+import type { AppSettings, Category, RawSiteInfo, UserRecord } from "../types/data.types";
 import { DEFAULT_SETTINGS } from "../types/data.types";
 
 export class StorageService {
@@ -147,6 +147,32 @@ export class StorageService {
     } else {
       await this.saveSiteInfo(parsed);
     }
+  }
+
+  static async getUserRecord(): Promise<UserRecord | null> {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(["userRecord"], (result) => {
+        resolve(result.userRecord ?? null);
+      });
+    });
+  }
+
+  static async saveUserRecord(record: UserRecord): Promise<void> {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ userRecord: record }, () => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  static async clearUserRecord(): Promise<void> {
+    return new Promise((resolve) => {
+      chrome.storage.local.remove("userRecord", resolve);
+    });
   }
 
   static exportData(siteInfo: RawSiteInfo, format: "json" | "csv"): void {
