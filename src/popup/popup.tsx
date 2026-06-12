@@ -4,9 +4,6 @@ import './css/pieChart.css';
 import './css/popup.css';
 import './css/stats.css';
 
-// image imports
-import SettingsIcon from '../assets/icons/settings.png';
-
 // hook and utility imports
 import { useState, useRef, useMemo } from 'react';
 import { usePopupController } from '../hooks/usePopupController';
@@ -18,6 +15,7 @@ import AuthPanel from '../components/AuthPanel';
 import AccountPanel from '../components/AccountPanel';
 import './css/auth.css';
 import TotalDropdown from '../components/TotalDropdown';
+import NavMenu from '../components/NavMenu';
 import DateRangeCalendar from '../components/DateRangeCalendar';
 import { TimeFormatter } from '../utils/timeFormatter';
 import { DataProcessor } from '../utils/dataProcessor';
@@ -65,7 +63,9 @@ const Popup = () => {
 
     const [isTotalDropdownOpen, setIsTotalDropdownOpen] = useState(false);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const totalBtnRef = useRef<HTMLButtonElement>(null);
+    const menuBtnRef = useRef<HTMLButtonElement>(null);
     const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const chartData = useMemo(() => DataProcessor.processDataForChart(allData), [allData]);
@@ -116,31 +116,26 @@ const Popup = () => {
                         <div className="logoName">WhatAreYouDoing</div>
                     </div>
                     <div className="options">
-                        <button
-                            className={`account-btn${session ? ' signed-in' : ''}`}
-                            onClick={session ? openAccount : openAuth}
-                            title={session ? 'Account' : 'Sign in'}
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" />
-                                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
-                        </button>
                         <button id="donateBtn" onClick={() => window.open('https://ko-fi.com/jerryweng', '_blank')}>
                             <svg viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M9.81 2.5C11.79 2.5 13.13 4.36 13.13 6.1C13.13 9.62 7.6 12.5 7.5 12.5C7.4 12.5 1.88 9.62 1.88 6.1C1.88 4.36 3.21 2.5 5.19 2.5C6.33 2.5 7.07 3.07 7.5 3.57C7.93 3.07 8.68 2.5 9.81 2.5Z" stroke="#f87171" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
-                        <button id="blockBtn" onClick={openBlockPage} title="Block rules">
+                        <button ref={menuBtnRef} onClick={() => setIsMenuOpen(v => !v)} title="Menu">
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-                                <path d="M6.34 6.34L17.66 17.66" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                             </svg>
                         </button>
-                        <button id="settingsBtn" onClick={openSettings}>
-                            <img src={SettingsIcon} alt="settings gear" />
-                        </button>
                     </div>
+                    <NavMenu
+                        anchorRef={menuBtnRef}
+                        isOpen={isMenuOpen}
+                        onClose={() => setIsMenuOpen(false)}
+                        session={!!session}
+                        onProfile={session ? openAccount : openAuth}
+                        onBlocks={openBlockPage}
+                        onSettings={openSettings}
+                    />
                 </div>
 
                 {/* Chart + Category selector - unified card */}

@@ -82,3 +82,64 @@ h1 {
   height: 100%;
   stroke: currentColor;
 }
+
+@keyframes nav-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.nav-menu {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 0.25rem;
+  min-width: 140px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  animation: nav-menu-in 0.15s ease-out forwards;
+  transform-origin: top right;
+}
+
+.nav-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #374151;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.875rem;
+  text-align: left;
+  transition: background-color 0.12s;
+}
+
+.nav-menu-item:hover {
+  background-color: #f3f4f6;
+}
+
+.nav-menu-item svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+.nav-menu-item img {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  object-fit: contain;
+  filter: none;
+}

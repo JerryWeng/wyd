@@ -15,6 +15,7 @@ dist-ssr
 .env*
 !.env.example
 .claude
+HANDOFF.md
 
 # Editor directories and files
 
