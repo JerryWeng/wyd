@@ -101,22 +101,22 @@ const Popup = () => {
                 {/* Header */}
                 <div className="subcontainer">
                     <div className="title">
-                        <div className="logo"><img src="/icons/icon16.png" alt="Logo" /></div>
-                        <div className="logoName">WhatAreYouDoing</div>
+                        <div className="logo"><img src="/icons/wydLogo.png" alt="Logo" /></div>
+                        <div className="logoName">What Are You Doing</div>
                     </div>
                     <div className="options">
-                        <button id="donateBtn" onClick={() => window.open('https://ko-fi.com/jerryweng', '_blank')}>
+                        <button id="donateBtn" title="Donate" onClick={() => window.open('https://ko-fi.com/jerryweng', '_blank')}>
                             <svg viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M9.81 2.5C11.79 2.5 13.13 4.36 13.13 6.1C13.13 9.62 7.6 12.5 7.5 12.5C7.4 12.5 1.88 9.62 1.88 6.1C1.88 4.36 3.21 2.5 5.19 2.5C6.33 2.5 7.07 3.07 7.5 3.57C7.93 3.07 8.68 2.5 9.81 2.5Z" stroke="#f87171" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
-                        <button id="blockBtn" onClick={openBlockPage} title="Block rules">
+                        <button id="blockBtn" onClick={openBlockPage} title="Block">
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
                                 <path d="M6.34 6.34L17.66 17.66" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                             </svg>
                         </button>
-                        <button id="settingsBtn" onClick={openSettings}>
+                        <button id="settingsBtn" title="Settings" onClick={openSettings}>
                             <img src={SettingsIcon} alt="settings gear" />
                         </button>
                     </div>

@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Chaptery';
+  src: url('/fonts/chaptery.regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   --bg-color: #f4f4f8;
   --btn-color: #eef0f6;

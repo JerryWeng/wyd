@@ -21,17 +21,26 @@
   gap: 0.75rem;
 }
 
+.title .logo {
+  display: flex;
+  align-items: center;
+}
+
 .title .logo img {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: var(--radius-sm);
+  object-fit: contain;
 }
 
 .logoName {
   color: white;
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  font-family: 'Chaptery', sans-serif;
+  font-size: 1.5rem;
+  font-weight: normal;
+  letter-spacing: 0;
+  position: relative;
+  top: 2px;
 }
 
 h1 {

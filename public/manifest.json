@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "WYD",
+  "name": "What Are You Doing",
   "version": "1.0",
-  "description": "Track time spent on websites and block distracting sites.",
+  "description": "Automatically track time spent on every website, visualize your browsing habits, and block distracting sites to stay focused.",
   "permissions": [
     "storage",
     "tabs",
@@ -26,15 +26,15 @@
   "action": {
     "default_popup": "index.html",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "icons/wydNameLogo.png",
+      "48": "icons/wydNameLogo.png",
+      "128": "icons/wydNameLogo.png"
     }
   },
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "icons/wydNameLogo.png",
+    "48": "icons/wydNameLogo.png",
+    "128": "icons/wydNameLogo.png"
   },
   "web_accessible_resources": [
     {
