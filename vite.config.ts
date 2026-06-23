@@ -14,6 +14,7 @@ export default defineConfig({
         background: resolve(__dirname, "src/background/background.ts"),
         content: resolve(__dirname, "src/content/mediaDetector.ts"),
         redirect: resolve(__dirname, "redirect.html"),
+        pricing: resolve(__dirname, "pricing.html"),
       },
       output: {
         entryFileNames: "[name].js",

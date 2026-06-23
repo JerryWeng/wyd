@@ -128,6 +128,15 @@ export const usePopupController = () => {
     setCurrentView("main");
   };
 
+  const refreshUserRecord = async () => {
+    if (!session) return;
+    const fresh = await authService.fetchUserRecord(session.user.id);
+    if (fresh) {
+      setUserRecord(fresh);
+      await StorageService.saveUserRecord(fresh);
+    }
+  };
+
   const handleSignOut = async () => {
     await authService.signOut();
     setCurrentView("main");
@@ -165,6 +174,7 @@ export const usePopupController = () => {
     openAccount,
     handleAuthSuccess,
     handleSignOut,
+    refreshUserRecord,
     closeView,
     allData,
   };

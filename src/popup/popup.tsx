@@ -42,6 +42,7 @@ const Popup = () => {
         openAccount,
         handleAuthSuccess,
         handleSignOut,
+        refreshUserRecord,
         closeView,
         allData
     } = usePopupController();
@@ -97,7 +98,7 @@ const Popup = () => {
             {currentView === 'settings' && <Settings onClose={closeView} />}
             {currentView === 'block' && <BlockPage onClose={closeView} />}
             {currentView === 'auth' && <AuthPanel onSuccess={handleAuthSuccess} onClose={closeView} />}
-            {currentView === 'account' && <AccountPanel userRecord={userRecord} onSignOut={handleSignOut} onClose={closeView} />}
+            {currentView === 'account' && <AccountPanel userRecord={userRecord} onRefresh={refreshUserRecord} onSignOut={handleSignOut} onClose={closeView} />}
             {isCalendarOpen && (
                 <DateRangeCalendar
                     onConfirm={(start, end) => {
@@ -112,7 +113,7 @@ const Popup = () => {
                 {/* Header */}
                 <div className="subcontainer">
                     <div className="title">
-                        <div className="logo"><img src="/icons/icon16.png" alt="Logo" /></div>
+                        <div className="logo"><img src="/icons/wydLogo.png" alt="Logo" /></div>
                         <div className="logoName">WhatAreYouDoing</div>
                     </div>
                     <div className="options">
